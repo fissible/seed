@@ -56,13 +56,14 @@ seed_category() {
 
 seed_order() {
     _seed_parse_flags "$@" || return $?
-    local statuses="pending processing shipped delivered cancelled"
     local i=0 first=1
+    local statuses
+    statuses=("pending" "processing" "shipped" "delivered" "cancelled")
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
         local oid email status total created
         oid=$(seed_uuid)
         email=$(seed_email)
-        status=$(_seed_random_elem $statuses)
+        status="${statuses[$(_seed_random_int 0 $((${#statuses[@]} - 1)))]}"
         total=$(_seed_random_float 5.00 9999.99)
         created=$(seed_date)
         local rec
@@ -133,14 +134,6 @@ seed_coupon() {
 }
 
 seed_cart() {
-    # --format sql not supported — check before parsing flags
-    local arg
-    for arg in "$@"; do
-        if [[ "$arg" == "sql" ]]; then
-            printf 'seed_cart: --format sql is not supported\n' >&2
-            return 2
-        fi
-    done
     _seed_parse_flags "$@" || return $?
     if [[ "$_SEED_FLAG_FORMAT" == "sql" ]]; then
         printf 'seed_cart: --format sql is not supported\n' >&2
