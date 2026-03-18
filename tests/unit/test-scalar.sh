@@ -147,4 +147,23 @@ different=$(printf '%s\n' "$prices" | grep -vc "^${first_price}$" || true)
 [[ "$different" -gt 0 ]]
 assert_exit_code $? 0 "_seed_random_int values are not all identical"
 
+ptyunit_test_begin "data file caching"
+
+# After sourcing seed.sh, cache globals should not exist yet
+[[ -z "$_SEED_DATA_FIRST_NAMES_N" ]]
+assert_exit_code $? 0 "cache empty before first call"
+
+# After _seed_random_line, cache should be populated
+_seed_random_line first_names > /dev/null
+[[ -n "$_SEED_DATA_FIRST_NAMES_N" ]]
+assert_exit_code $? 0 "cache populated after first call"
+
+# A second call should produce a non-empty result (uses cache, not file)
+v2=$(_seed_random_line first_names)
+assert_not_empty "$v2" "second call from cache returns value"
+
+# Cache count should match actual file line count
+file_count=$(wc -l < "$SEED_HOME/data/first_names.txt" | tr -d ' ')
+assert_eq "$file_count" "$_SEED_DATA_FIRST_NAMES_N" "cache count matches file"
+
 ptyunit_test_summary

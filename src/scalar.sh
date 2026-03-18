@@ -3,34 +3,51 @@
 # Bash 3.2 compatible: no mapfile/readarray, no +=, no declare -A
 
 # ---------------------------------------------------------------------------
-# _seed_load_data <name>
-# Print every line from $SEED_HOME/data/<name>.txt, one line per output line.
+# _seed_cache_data <name>
+# Load $SEED_HOME/data/<name>.txt into globals on first call; no-op after that.
+# Globals: _SEED_DATA_<UPPER_NAME>_N  (count)
+#          _SEED_DATA_<UPPER_NAME>_<i> (line at index i)
 # ---------------------------------------------------------------------------
-_seed_load_data() {
-    local file="$SEED_HOME/data/$1.txt"
+_seed_cache_data() {
+    local name="$1"
+    local uname
+    uname=$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    local count_var="_SEED_DATA_${uname}_N"
+    [[ -n "${!count_var}" ]] && return 0   # already cached
+
+    local file="$SEED_HOME/data/${name}.txt"
     if [[ ! -f "$file" ]]; then
         printf 'Data file not found: %s\n' "$file" >&2
         return 1
     fi
+
+    local count=0
     while IFS= read -r line; do
-        printf '%s\n' "$line"
+        printf -v "_SEED_DATA_${uname}_${count}" '%s' "$line"
+        count=$((count + 1))
     done < "$file"
+    printf -v "$count_var" '%d' "$count"
 }
 
 # ---------------------------------------------------------------------------
 # _seed_random_line <name>
 # Return a single random line from $SEED_HOME/data/<name>.txt.
+# File is loaded into globals on first call; subsequent calls use the cache.
 # ---------------------------------------------------------------------------
 _seed_random_line() {
-    local -a arr=()
-    while IFS= read -r line; do
-        arr[${#arr[@]}]="$line"
-    done < <(_seed_load_data "$1")
-    local count=${#arr[@]}
+    local name="$1"
+    _seed_cache_data "$name" || return 1
+
+    local uname
+    uname=$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    local count_var="_SEED_DATA_${uname}_N"
+    local count="${!count_var}"
     [[ $count -eq 0 ]] && return 1
+
     local idx
     idx=$(_seed_random_int 0 $((count - 1)))
-    printf '%s\n' "${arr[$idx]}"
+    local line_var="_SEED_DATA_${uname}_${idx}"
+    printf '%s\n' "${!line_var}"
 }
 
 # ---------------------------------------------------------------------------
