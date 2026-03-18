@@ -134,4 +134,17 @@ assert_exit_code $? 0 "last_names has >= 140 entries"
 [[ "$lorem_count" -ge 55 ]]
 assert_exit_code $? 0 "lorem has >= 55 entries"
 
+ptyunit_test_begin "rng variety"
+# 10 numbers in [1,1000] must have at least 6 unique values
+uniq_count=$(seed_number --count 10 --max 1000 | sort -u | wc -l | tr -d ' ')
+[[ "$uniq_count" -ge 6 ]]
+assert_exit_code $? 0 "_seed_random_int produces varied output"
+
+# _seed_random_float variety: 5 prices must not all be the same
+prices=$(seed_number --count 5 --max 999)
+first_price=$(printf '%s\n' "$prices" | head -1)
+different=$(printf '%s\n' "$prices" | grep -vc "^${first_price}$" || true)
+[[ "$different" -gt 0 ]]
+assert_exit_code $? 0 "_seed_random_int values are not all identical"
+
 ptyunit_test_summary

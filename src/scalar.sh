@@ -34,13 +34,33 @@ _seed_random_line() {
 }
 
 # ---------------------------------------------------------------------------
+# Global LCG RNG state. Seeded lazily on first use, or explicitly via --seed.
+# ---------------------------------------------------------------------------
+_SEED_RNG_STATE=""
+
+# _seed_rng_init
+# Idempotent. Seeds _SEED_RNG_STATE from /dev/urandom (or PID+RANDOM fallback).
+# Does nothing if state is already set.
+_seed_rng_init() {
+    [[ -n "$_SEED_RNG_STATE" ]] && return
+    if [[ -r /dev/urandom ]]; then
+        _SEED_RNG_STATE=$(od -An -N4 -tu4 /dev/urandom | tr -d ' \n')
+    else
+        _SEED_RNG_STATE=$(awk -v p="$$" -v r1="$RANDOM" -v r2="$RANDOM" \
+            'BEGIN { printf "%d", (p * 1000003 + r1 * 65537 + r2) % 4294967296 }')
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # _seed_random_int <min> <max>
 # Print a random integer in [min, max] inclusive.
-# Uses awk for portability across bash versions.
+# Advances global LCG state; no per-call seeding.
 # ---------------------------------------------------------------------------
 _seed_random_int() {
     local min="${1:-1}" max="${2:-100}"
-    awk -v seed="${$}${RANDOM}" "BEGIN { srand(seed + 0); printf \"%d\", int(rand() * ($max - $min + 1)) + $min }"
+    _seed_rng_init
+    _SEED_RNG_STATE=$(( (1664525 * _SEED_RNG_STATE + 1013904223) % 4294967296 ))
+    printf '%d\n' $(( _SEED_RNG_STATE % (max - min + 1) + min ))
 }
 
 # ---------------------------------------------------------------------------
@@ -49,7 +69,10 @@ _seed_random_int() {
 # ---------------------------------------------------------------------------
 _seed_random_float() {
     local min="${1:-1.00}" max="${2:-999.99}"
-    awk -v seed="${$}${RANDOM}" "BEGIN { srand(seed + 0); printf \"%.2f\", rand() * ($max - $min) + $min }"
+    _seed_rng_init
+    _SEED_RNG_STATE=$(( (1664525 * _SEED_RNG_STATE + 1013904223) % 4294967296 ))
+    awk -v s="$_SEED_RNG_STATE" -v lo="$min" -v hi="$max" \
+        'BEGIN { printf "%.2f", (s / 4294967296.0) * (hi - lo) + lo }'
 }
 
 # ---------------------------------------------------------------------------
