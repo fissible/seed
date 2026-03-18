@@ -85,6 +85,12 @@ _seed_parse_flags() {
                     return 2
                 fi
                 _SEED_FLAG_ITEMS="$2"; shift 2 ;;
+            --seed)
+                if [[ $# -lt 2 ]]; then
+                    printf 'Flag --seed requires a value\n' >&2
+                    return 2
+                fi
+                _SEED_RNG_STATE="$2"; shift 2 ;;
             --*) printf 'Unknown flag: %s\n' "$1" >&2; return 2 ;;
             *)   printf 'Unexpected argument: %s\n' "$1" >&2; return 2 ;;
         esac

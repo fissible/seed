@@ -37,4 +37,28 @@ assert_exit_code "$?" "0" "no-arg call exits 0"
 assert_eq "1"    "$_SEED_FLAG_COUNT"  "COUNT reset to default 1"
 assert_eq "json" "$_SEED_FLAG_FORMAT" "FORMAT reset to default json"
 
+ptyunit_test_begin "--seed flag"
+
+# --seed sets _SEED_RNG_STATE
+_seed_parse_flags --seed 42
+assert_exit_code "$?" "0" "--seed exits 0"
+assert_eq "42" "$_SEED_RNG_STATE" "--seed sets RNG state"
+
+# --seed without value → exit 2
+_seed_parse_flags --seed 2>/dev/null
+assert_exit_code "$?" "2" "--seed missing value exits 2"
+
+# Reproducibility: same seed → same output.
+# Each $(…) runs seed_user in a subshell; _SEED_RNG_STATE changes inside the
+# subshell never propagate back to the parent, so no reset is needed between calls.
+out1=$(seed_user --seed 99999)
+out2=$(seed_user --seed 99999)
+assert_eq "$out1" "$out2" "--seed produces reproducible output"
+
+# Different seeds → different output (probabilistically certain)
+out_a=$(seed_user --seed 1)
+out_b=$(seed_user --seed 2)
+[[ "$out_a" != "$out_b" ]]
+assert_exit_code $? 0 "different seeds produce different output"
+
 ptyunit_test_summary
