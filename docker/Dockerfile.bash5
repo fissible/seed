@@ -1,0 +1,5 @@
+FROM alpine:3.19
+RUN apk add --no-cache bash python3 gawk
+WORKDIR /seed
+COPY . .
+ENV PTYUNIT_HOME=/ptyunit
