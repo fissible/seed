@@ -82,3 +82,104 @@ _seed_fmt_sql() {
     done
     printf 'INSERT INTO %s (%s) VALUES (%s);\n' "$_SEED_REC_TABLE" "$cols" "$vals"
 }
+
+# ---------------------------------------------------------------------------
+# _seed_emit_multi <format> <first_ref> <rec>
+# Print a record within a multi-record loop, handling CSV header dedup and
+# KV blank-line separator.  Callers pass the name of the "first" variable as
+# a nameref-style workaround (we use an indirect global instead for bash 3.2).
+# Internal helper; not part of the public API.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# seed_user [--count N] [--format json|kv|csv|sql]
+# ---------------------------------------------------------------------------
+seed_user() {
+    _seed_parse_flags "$@" || return $?
+    local i=0 first=1
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        local name email phone dob username
+        name=$(seed_name)
+        email=$(seed_email)
+        phone=$(seed_phone)
+        dob=$(seed_date --from "$(_seed_date_subtract_years "$(_seed_today)" 80)" \
+                        --to   "$(_seed_date_subtract_years "$(_seed_today)" 18)")
+        username=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '.')
+        local rec
+        rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" users \
+            name "$name" email "$email" phone "$phone" dob "$dob" username "$username")
+        if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
+            if [[ $first -eq 1 ]]; then printf '%s\n' "$rec"; first=0
+            else printf '%s\n' "$rec" | tail -n 1; fi
+        elif [[ "$_SEED_FLAG_FORMAT" == "kv" ]]; then
+            [[ $first -eq 0 ]] && printf '\n'
+            printf '%s\n' "$rec"; first=0
+        else
+            printf '%s\n' "$rec"
+        fi
+        i=$((i+1))
+    done
+}
+
+# ---------------------------------------------------------------------------
+# seed_address [--count N] [--format json|kv|csv|sql]
+# ---------------------------------------------------------------------------
+seed_address() {
+    _seed_parse_flags "$@" || return $?
+    local i=0 first=1
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        local street city state zip country
+        street="$(_seed_random_int 1 9999) $(_seed_random_line streets)"
+        city=$(_seed_random_line cities)
+        state=$(_seed_random_state)
+        zip=$(_seed_random_zip)
+        country="US"
+        local rec
+        rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" addresses \
+            street "$street" city "$city" state "$state" zip "$zip" country "$country")
+        if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
+            if [[ $first -eq 1 ]]; then printf '%s\n' "$rec"; first=0
+            else printf '%s\n' "$rec" | tail -n 1; fi
+        elif [[ "$_SEED_FLAG_FORMAT" == "kv" ]]; then
+            [[ $first -eq 0 ]] && printf '\n'
+            printf '%s\n' "$rec"; first=0
+        else
+            printf '%s\n' "$rec"
+        fi
+        i=$((i+1))
+    done
+}
+
+# ---------------------------------------------------------------------------
+# seed_company [--count N] [--format json|kv|csv|sql]
+# Flat record — no nested address object.
+# ---------------------------------------------------------------------------
+seed_company() {
+    _seed_parse_flags "$@" || return $?
+    local i=0 first=1
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        local name domain phone street city state zip country
+        name=$(_seed_random_line companies)
+        domain=$(_seed_random_line domains)
+        phone=$(seed_phone)
+        street="$(_seed_random_int 1 9999) $(_seed_random_line streets)"
+        city=$(_seed_random_line cities)
+        state=$(_seed_random_state)
+        zip=$(_seed_random_zip)
+        country="US"
+        local rec
+        rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" companies \
+            name "$name" domain "$domain" phone "$phone" \
+            street "$street" city "$city" state "$state" zip "$zip" country "$country")
+        if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
+            if [[ $first -eq 1 ]]; then printf '%s\n' "$rec"; first=0
+            else printf '%s\n' "$rec" | tail -n 1; fi
+        elif [[ "$_SEED_FLAG_FORMAT" == "kv" ]]; then
+            [[ $first -eq 0 ]] && printf '\n'
+            printf '%s\n' "$rec"; first=0
+        else
+            printf '%s\n' "$rec"
+        fi
+        i=$((i+1))
+    done
+}

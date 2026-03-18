@@ -52,4 +52,40 @@ assert_contains "$out" "5" "sql integer not quoted"
 _seed_emit_record tsv users name "Jane" 2>/dev/null
 assert_exit_code $? 2 "unknown format exits 2"
 
+ptyunit_test_begin "core record generators"
+
+# seed_user
+out=$(seed_user)
+assert_contains "$out" '"name"' "seed_user has name"
+assert_contains "$out" '"email"' "seed_user has email"
+assert_contains "$out" '"phone"' "seed_user has phone"
+assert_contains "$out" '"dob"' "seed_user has dob"
+assert_contains "$out" '"username"' "seed_user has username"
+
+# seed_user --format kv
+out=$(seed_user --format kv)
+assert_contains "$out" 'NAME=' "seed_user kv NAME"
+assert_contains "$out" 'USERNAME=' "seed_user kv USERNAME"
+
+# seed_user --count 3 --format csv: header + 3 data rows = 4 lines
+assert_eq "4" "$(seed_user --count 3 --format csv | wc -l | tr -d ' \t')" "seed_user csv count 3"
+
+# seed_user --count 3 --format sql: 3 INSERT statements
+assert_eq "3" "$(seed_user --count 3 --format sql | wc -l | tr -d ' \t')" "seed_user sql count 3"
+
+# seed_address
+out=$(seed_address)
+assert_contains "$out" '"street"' "seed_address has street"
+assert_contains "$out" '"city"' "seed_address has city"
+assert_contains "$out" '"state"' "seed_address has state"
+assert_contains "$out" '"zip"' "seed_address has zip"
+assert_contains "$out" '"country":"US"' "seed_address country is US"
+
+# seed_company
+out=$(seed_company)
+assert_contains "$out" '"name"' "seed_company has name"
+assert_contains "$out" '"domain"' "seed_company has domain"
+assert_contains "$out" '"street"' "seed_company has street (flat)"
+assert_contains "$out" '"country":"US"' "seed_company country is US"
+
 ptyunit_test_summary
