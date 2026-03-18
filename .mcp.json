@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "seed": {
+      "command": "python3",
+      "args": ["/Users/allenmccabe/lib/fissible/seed/mcp/server.py"]
+    }
+  }
+}
