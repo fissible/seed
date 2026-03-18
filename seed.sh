@@ -15,7 +15,7 @@ source "$SEED_HOME/src/tui.sh"
 # Internal: flag parser
 # Populates globals: _SEED_FLAG_COUNT _SEED_FLAG_FORMAT _SEED_FLAG_MIN
 #   _SEED_FLAG_MAX _SEED_FLAG_FROM _SEED_FLAG_TO _SEED_FLAG_WORDS
-#   _SEED_FLAG_SENTENCES _SEED_FLAG_ITEMS
+#   _SEED_FLAG_SENTENCES _SEED_FLAG_ITEMS; conditionally sets _SEED_RNG_STATE
 # Returns exit code 2 on unknown/malformed flags.
 # ---------------------------------------------------------------------------
 _seed_parse_flags() {
