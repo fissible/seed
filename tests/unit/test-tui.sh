@@ -26,4 +26,10 @@ assert_eq "5" "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" "menu_items count 5"
 seed_filenames --format json 2>/dev/null
 assert_exit_code $? 2 "seed_filenames --format exits 2"
 
+seed_dirtree --format json 2>/dev/null
+assert_exit_code $? 2 "seed_dirtree --format exits 2"
+
+seed_menu_items --format json 2>/dev/null
+assert_exit_code $? 2 "seed_menu_items --format exits 2"
+
 ptyunit_test_summary
