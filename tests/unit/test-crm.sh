@@ -9,6 +9,8 @@ out=$(seed_contact)
 assert_contains "$out" '"name"' "seed_contact has name"
 assert_contains "$out" '"email"' "seed_contact has email"
 assert_contains "$out" '"title"' "seed_contact has title"
+assert_contains "$out" '"phone"' "seed_contact has phone"
+assert_contains "$out" '"company"' "seed_contact has company"
 
 # seed_lead — flat, has all contact + CRM fields
 out=$(seed_lead)

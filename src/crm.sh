@@ -91,14 +91,14 @@ seed_activity() {
     types=("call" "email" "meeting")
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local type contact_email date notes
+        local type contact_email activity_date notes
         type="${types[$(_seed_random_int 0 $((${#types[@]} - 1)))]}"
         contact_email=$(seed_email)
-        date=$(seed_date)
+        activity_date=$(seed_date)
         notes=$(seed_lorem)
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" activities \
-            type "$type" contact_email "$contact_email" date "$date" notes "$notes")
+            type "$type" contact_email "$contact_email" activity_date "$activity_date" notes "$notes")
         if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
             if [[ $first -eq 1 ]]; then printf '%s\n' "$rec"; first=0
             else printf '%s\n' "$rec" | tail -n 1; fi
