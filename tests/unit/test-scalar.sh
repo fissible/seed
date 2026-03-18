@@ -166,4 +166,29 @@ assert_not_empty "$v2" "second call from cache returns value"
 file_count=$(wc -l < "$SEED_HOME/data/first_names.txt" | tr -d ' ')
 assert_eq "$file_count" "$_SEED_DATA_FIRST_NAMES_N" "cache count matches file"
 
+ptyunit_test_begin "seed_date day range"
+
+# Generate 500 dates — statistically certain to include days 29-31
+high_days=$(seed_date --count 500 | awk -F'-' '$3+0 > 28' | wc -l | tr -d ' ')
+[[ "$high_days" -gt 0 ]]
+assert_exit_code $? 0 "seed_date generates days 29-31"
+
+# Leap year: 2000 was a leap year; Feb should allow day 29.
+# --from/--to only constrain the year, so dates across all of 2000
+# are generated. Among them, some February dates should reach day 29.
+# Use 2000 dates: P(at least one Feb 29) > 99.99% with correct leap logic.
+feb29=$(seed_date --count 2000 --from 2000-01-01 --to 2000-12-31 \
+    | awk -F'-' '$2=="02" && $3=="29"' | wc -l | tr -d ' ')
+[[ "$feb29" -gt 0 ]]
+assert_exit_code $? 0 "seed_date generates Feb 29 in leap year (2000)"
+
+# Non-leap year: 1900 was NOT a leap year (divisible by 100 but not 400).
+# --from/--to only constrain the year range, not the month or day.
+# With --from 1900-... --to 1900-..., year is fixed to 1900 and month/day
+# are picked randomly across all of 1900. The leap-year check for year=1900
+# should set max_day=28 for February, so no Feb 29 should ever appear.
+bad=$(seed_date --count 200 --from 1900-01-01 --to 1900-12-31 \
+    | awk -F'-' '$2=="02" && $3=="29"')
+assert_eq "" "$bad" "no Feb 29 in non-leap year (1900)"
+
 ptyunit_test_summary

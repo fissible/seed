@@ -265,17 +265,28 @@ seed_uuid() {
 }
 
 seed_date() {
-    _seed_has_format_flag "$@" && { printf 'seed_date: --format not valid\n' >&2; return 2; }
+    _seed_has_format_flag "$@" && { printf 'seed_date: --format not valid for scalar generators\n' >&2; return 2; }
     _seed_parse_flags "$@" || return $?
     local from="${_SEED_FLAG_FROM:-2000-01-01}"
     local to="${_SEED_FLAG_TO:-$(_seed_today)}"
     local from_year="${from:0:4}" to_year="${to:0:4}"
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local year month day
+        local year month day max_day
         year=$(_seed_random_int "$from_year" "$to_year")
         month=$(_seed_random_int 1 12)
-        day=$(_seed_random_int 1 28)
+        case "$month" in
+            1|3|5|7|8|10|12) max_day=31 ;;
+            4|6|9|11)         max_day=30 ;;
+            2)
+                if (( year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) )); then
+                    max_day=29
+                else
+                    max_day=28
+                fi
+                ;;
+        esac
+        day=$(_seed_random_int 1 "$max_day")
         printf '%04d-%02d-%02d\n' "$year" "$month" "$day"
         i=$((i+1))
     done
