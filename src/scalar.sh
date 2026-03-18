@@ -40,7 +40,7 @@ _seed_random_line() {
 # ---------------------------------------------------------------------------
 _seed_random_int() {
     local min="${1:-1}" max="${2:-100}"
-    awk "BEGIN { srand(); printf \"%d\", int(rand() * ($max - $min + 1)) + $min }"
+    awk -v seed="${$}${RANDOM}" "BEGIN { srand(seed + 0); printf \"%d\", int(rand() * ($max - $min + 1)) + $min }"
 }
 
 # ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ _seed_random_int() {
 # ---------------------------------------------------------------------------
 _seed_random_float() {
     local min="${1:-1.00}" max="${2:-999.99}"
-    awk "BEGIN { srand(); printf \"%.2f\", rand() * ($max - $min) + $min }"
+    awk -v seed="${$}${RANDOM}" "BEGIN { srand(seed + 0); printf \"%.2f\", rand() * ($max - $min) + $min }"
 }
 
 # ---------------------------------------------------------------------------
