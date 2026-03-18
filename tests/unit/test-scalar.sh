@@ -63,4 +63,64 @@ assert_exit_code $? 0 "_seed_is_numeric float"
 _seed_is_numeric "hello"
 assert_exit_code $? 1 "_seed_is_numeric string"
 
+ptyunit_test_begin "scalar generators"
+
+# seed_name
+assert_not_empty "$(seed_name)" "seed_name not empty"
+[[ "$(seed_name)" =~ ^[A-Z][a-z]+\ [A-Z][a-z]+$ ]]
+assert_exit_code $? 0 "seed_name format"
+
+# seed_email
+assert_not_empty "$(seed_email)" "seed_email not empty"
+[[ "$(seed_email)" =~ ^[a-z]+\.[a-z]+@ ]]
+assert_exit_code $? 0 "seed_email format"
+
+# seed_phone
+[[ "$(seed_phone)" =~ ^[2-9][0-9]{2}-[0-9]{3}-[0-9]{4}$ ]]
+assert_exit_code $? 0 "seed_phone format"
+
+# seed_uuid
+[[ "$(seed_uuid)" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]
+assert_exit_code $? 0 "seed_uuid format"
+
+# seed_date
+[[ "$(seed_date)" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+assert_exit_code $? 0 "seed_date format"
+
+# seed_number default range
+n=$(seed_number)
+[[ "$n" -ge 1 && "$n" -le 100 ]]
+assert_exit_code $? 0 "seed_number default range"
+
+n=$(seed_number --min 42 --max 42)
+assert_eq "42" "$n" "seed_number exact"
+
+# seed_lorem
+assert_not_empty "$(seed_lorem)" "seed_lorem not empty"
+
+# seed_lorem mutual exclusion
+seed_lorem --words 3 --sentences 2 2>/dev/null
+assert_exit_code $? 2 "seed_lorem --words + --sentences exits 2"
+
+# seed_ip
+[[ "$(seed_ip)" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+assert_exit_code $? 0 "seed_ip format"
+
+# seed_url
+[[ "$(seed_url)" =~ ^https:// ]]
+assert_exit_code $? 0 "seed_url https"
+
+# seed_bool
+val=$(seed_bool)
+[[ "$val" == "true" || "$val" == "false" ]]
+assert_exit_code $? 0 "seed_bool value"
+
+# --count N produces N lines
+assert_eq "5" "$(seed_name --count 5 | wc -l | tr -d ' \t')" "seed_name --count 5"
+assert_eq "3" "$(seed_uuid --count 3 | wc -l | tr -d ' \t')" "seed_uuid --count 3"
+
+# --format on scalar → exit 2
+seed_name --format json 2>/dev/null
+assert_exit_code $? 2 "seed_name --format exits 2"
+
 ptyunit_test_summary

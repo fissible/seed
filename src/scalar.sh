@@ -150,3 +150,164 @@ _seed_random_zip() {
 _seed_is_numeric() {
     [[ "$1" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]
 }
+
+# ---------------------------------------------------------------------------
+# Scalar generators
+# Each accepts --count N (default 1) and rejects --format.
+# ---------------------------------------------------------------------------
+
+seed_name() {
+    _seed_has_format_flag "$@" && { printf 'seed_name: --format not valid for scalar generators\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        printf '%s %s\n' "$(_seed_random_line first_names)" "$(_seed_random_line last_names)"
+        i=$((i+1))
+    done
+}
+
+seed_first_name() {
+    _seed_has_format_flag "$@" && { printf 'seed_first_name: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        _seed_random_line first_names
+        i=$((i+1))
+    done
+}
+
+seed_last_name() {
+    _seed_has_format_flag "$@" && { printf 'seed_last_name: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        _seed_random_line last_names
+        i=$((i+1))
+    done
+}
+
+seed_email() {
+    _seed_has_format_flag "$@" && { printf 'seed_email: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        local first last domain
+        first=$(seed_first_name | tr '[:upper:]' '[:lower:]')
+        last=$(seed_last_name | tr '[:upper:]' '[:lower:]')
+        domain=$(_seed_random_line domains)
+        printf '%s.%s@%s\n' "$first" "$last" "$domain"
+        i=$((i+1))
+    done
+}
+
+seed_phone() {
+    _seed_has_format_flag "$@" && { printf 'seed_phone: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        printf '%d%02d-%03d-%04d\n' \
+            "$(_seed_random_int 2 9)" \
+            "$(_seed_random_int 10 99)" \
+            "$(_seed_random_int 100 999)" \
+            "$(_seed_random_int 1000 9999)"
+        i=$((i+1))
+    done
+}
+
+seed_uuid() {
+    _seed_has_format_flag "$@" && { printf 'seed_uuid: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        _seed_uuid_gen || return $?
+        i=$((i+1))
+    done
+}
+
+seed_date() {
+    _seed_has_format_flag "$@" && { printf 'seed_date: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local from="${_SEED_FLAG_FROM:-2000-01-01}"
+    local to="${_SEED_FLAG_TO:-$(_seed_today)}"
+    local from_year="${from:0:4}" to_year="${to:0:4}"
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        local year month day
+        year=$(_seed_random_int "$from_year" "$to_year")
+        month=$(_seed_random_int 1 12)
+        day=$(_seed_random_int 1 28)
+        printf '%04d-%02d-%02d\n' "$year" "$month" "$day"
+        i=$((i+1))
+    done
+}
+
+seed_number() {
+    _seed_has_format_flag "$@" && { printf 'seed_number: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local min="${_SEED_FLAG_MIN:-1}" max="${_SEED_FLAG_MAX:-100}"
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        _seed_random_int "$min" "$max"
+        i=$((i+1))
+    done
+}
+
+seed_lorem() {
+    _seed_has_format_flag "$@" && { printf 'seed_lorem: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    # --words and --sentences are mutually exclusive
+    if [[ -n "$_SEED_FLAG_WORDS" && -n "$_SEED_FLAG_SENTENCES" ]]; then
+        printf 'seed_lorem: --words and --sentences are mutually exclusive\n' >&2
+        return 2
+    fi
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        if [[ -n "$_SEED_FLAG_WORDS" ]]; then
+            local sentence
+            sentence=$(_seed_random_line lorem)
+            printf '%s\n' "$sentence" | tr ' ' '\n' | head -n "$_SEED_FLAG_WORDS" | tr '\n' ' ' | sed 's/ $//'
+            printf '\n'
+        elif [[ -n "$_SEED_FLAG_SENTENCES" ]]; then
+            local s=0
+            while [[ $s -lt $_SEED_FLAG_SENTENCES ]]; do
+                _seed_random_line lorem
+                s=$((s+1))
+            done
+        else
+            _seed_random_line lorem
+        fi
+        i=$((i+1))
+    done
+}
+
+seed_ip() {
+    _seed_has_format_flag "$@" && { printf 'seed_ip: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        printf '%d.%d.%d.%d\n' \
+            "$(_seed_random_int 1 254)" "$(_seed_random_int 1 254)" \
+            "$(_seed_random_int 1 254)" "$(_seed_random_int 1 254)"
+        i=$((i+1))
+    done
+}
+
+seed_url() {
+    _seed_has_format_flag "$@" && { printf 'seed_url: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        printf 'https://%s/%s\n' "$(_seed_random_line domains)" "$(_seed_random_line nouns)"
+        i=$((i+1))
+    done
+}
+
+seed_bool() {
+    _seed_has_format_flag "$@" && { printf 'seed_bool: --format not valid\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        if [[ $(( RANDOM % 2 )) -eq 0 ]]; then printf 'true\n'; else printf 'false\n'; fi
+        i=$((i+1))
+    done
+}
