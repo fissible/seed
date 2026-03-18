@@ -1,181 +1,234 @@
-# fissible/seed
+# 🌱 seed
 
-A complete bash fake-data generator with an MCP server for Claude Code. Generate realistic test data in JSON, KV, CSV, or SQL formats—or use TUI helpers for filenames and directory structures.
+**Fake data for the rest of us.**
 
-## Quick Start
+A bash-first fake data generator — source it as a library, call it from the CLI, or wire it up as an MCP server so Claude can generate test data without spending tokens.
 
-### As a Bash Library
+```bash
+$ bash seed.sh user --count 3 --format json
+{"name":"Amy Peterson","email":"amy.peterson@generated.io","phone":"941-212-9025","dob":"1992-12-22","username":"amy.peterson"}
+{"name":"Joshua Campbell","email":"j.campbell@testmail.net","phone":"765-893-8309","dob":"1947-10-02","username":"joshua.campbell"}
+{"name":"Angela Bell","email":"angela.bell@trial.co","phone":"752-176-9946","dob":"1952-05-14","username":"angela.bell"}
+```
 
-Source the library and call generators directly:
+No runtime. No package manager. No dependencies beyond bash and awk.
+
+---
+
+## What's in the box
+
+**31 generators** across 5 categories, 4 output formats, and an MCP server that turns Claude into a data factory.
+
+| Category | Generators |
+|---|---|
+| Scalar | `name` `email` `phone` `uuid` `date` `number` `lorem` `ip` `url` `bool` `first_name` `last_name` |
+| Record | `user` `address` `company` |
+| Ecommerce | `product` `category` `order` `order_item` `coupon` `cart` |
+| CRM | `contact` `lead` `deal` `activity` `note` `tag` |
+| TUI | `filenames` `dirtree` `menu_items` |
+
+---
+
+## Install
+
+```bash
+git clone https://github.com/fissible/seed ~/lib/fissible/seed
+```
+
+That's it. No build step.
+
+---
+
+## Usage
+
+### Library
+
+Source `seed.sh` and call any `seed_*` function:
 
 ```bash
 source ~/lib/fissible/seed/seed.sh
 
-# Single scalar value
-seed_name
-seed_email
-seed_phone
-
-# Generate 5 users in JSON
-seed_user --count 5 --format json
+seed_name          # Patricia Torres
+seed_email         # patricia.torres@fakecorp.dev
+seed_uuid          # 4f9a1c2e-8b3d-47f0-a561-dc9e2b8f1034
+seed_bool          # true
 ```
 
-### As a CLI
-
-Run generators directly via bash:
+### CLI
 
 ```bash
-bash ~/lib/fissible/seed/seed.sh user --format json --count 3
-bash ~/lib/fissible/seed/seed.sh product --count 10 --format csv
-bash ~/lib/fissible/seed/seed.sh lead --format json --count 1
+bash seed.sh <generator> [flags]
+
+bash seed.sh name --count 5
+bash seed.sh user --format json
+bash seed.sh product --count 10 --format csv
+bash seed.sh order --format sql --count 3
+bash seed.sh filenames --count 20
 ```
 
-## Generators
+---
 
-### Scalar (single values, no --format support)
+## Output formats
 
-- `seed_name` – Full name (first + last)
-- `seed_first_name` – First name only
-- `seed_last_name` – Last name only
-- `seed_email` – Email address
-- `seed_phone` – Phone number (US format)
-- `seed_uuid` – UUID v4
-- `seed_date` – ISO 8601 date (today ±30 days)
-- `seed_number` – Random integer
-- `seed_lorem` – Lorem ipsum paragraph
-- `seed_ip` – IPv4 address
-- `seed_url` – HTTP URL
-- `seed_bool` – true or false
+All record generators support `--format json|kv|csv|sql`. Default is JSON.
 
-### Record (structured data)
+### JSON (default)
+```bash
+$ bash seed.sh order
+{"order_id":"27ba8115-eb1c-44a0-bbb9-a9681275bfba","customer_email":"andrew.henderson@samplelink.net","status":"cancelled","total":1951.20,"created_at":"2020-07-27"}
+```
 
-- `seed_user` – User with name, email, phone
-- `seed_address` – Postal address
-- `seed_company` – Company with name, industry, size
+### CSV
+```bash
+$ bash seed.sh user --count 3 --format csv
+name,email,phone,dob,username
+"Joshua Campbell","jeffrey.torres@testmail.net","765-893-8309","1947-10-02","joshua.campbell"
+"Angela Bell","michael.jackson@trial.co","752-176-9946","1952-05-14","angela.bell"
+"Patrick Martinez","mark.white@fakecorp.dev","796-750-6687","1977-04-20","patrick.martinez"
+```
 
-### Ecommerce
+### SQL
+```bash
+$ bash seed.sh order --format sql
+INSERT INTO orders (order_id, customer_email, status, total, created_at) VALUES ('407c15a9-d62c-434f-90fb-5575d901de46', 'stephanie.russell@fakemailbox.net', 'shipped', 8154.95, '2009-02-15');
+```
 
-- `seed_product` – Product with SKU, price, category, description, stock
-- `seed_category` – Product category with slug
-- `seed_order` – Order with customer, total, status
-- `seed_order_item` – Line item with product, quantity, price
-- `seed_coupon` – Discount code with percentage/amount
-- `seed_cart` – Shopping cart with items
+### KV
+```bash
+$ bash seed.sh user --format kv
+NAME="Amy Peterson"
+EMAIL="amy.peterson@generated.io"
+PHONE="941-212-9025"
+DOB="1992-12-22"
+USERNAME="amy.peterson"
+```
 
-### CRM
+---
 
-- `seed_contact` – Contact with name, email, phone, company, title
-- `seed_lead` – Lead with score, source, status
-- `seed_deal` – Deal with amount, stage, owner
-- `seed_activity` – Activity (call/email/meeting) with date, outcome
-- `seed_note` – Internal note with text
-- `seed_tag` – Tag for categorization
+## Structured generators
 
-### TUI (terminal UI helpers, no --format support)
+### `seed_cart` — nested JSON
 
-- `seed_filenames` – Realistic filenames (default: 10)
-- `seed_dirtree` – Hierarchical directory structure (default: 10)
-- `seed_menu_items` – Menu items for selection lists (default: 10)
+```bash
+$ bash seed.sh cart --items 2
+{
+  "cart_id": "a0abf54b-b3d5-46b8-a8c5-f8bd67ced3a1",
+  "customer_email": "michelle.alexander@trial.co",
+  "subtotal": 2626.93,
+  "items": [
+    {"order_id": "a0abf54b...", "product_sku": "WEE-20993", "qty": 9, "unit_price": 155.33, "line_total": 1397.97},
+    {"order_id": "a0abf54b...", "product_sku": "QUI-21548", "qty": 4, "unit_price": 307.24, "line_total": 1228.96}
+  ]
+}
+```
 
-## Formats
+`line_total` is always `qty × unit_price`. `subtotal` is always the sum of `line_total`s. Math is real.
 
-Formats apply to record and ecommerce/CRM generators. Scalar and TUI generators ignore `--format`.
+### TUI helpers — plain text, one per line
 
-- `--format json` – JSON object per line (default)
-- `--format kv` – Key=value pairs, blank-line delimited
-- `--format csv` – CSV with headers (record + ecommerce + CRM only)
-- `--format sql` – SQL INSERT statements
+```bash
+$ bash seed.sh filenames --count 5
+draft-widget-2019.csv
+latest-dataset-2025.json
+optimized-queue-2025.json
+quick-block-2024.txt
+old-detail-2020.txt
+
+$ bash seed.sh dirtree --count 3
+network/asset/log
+client/dataset/node
+quick/block/archive
+
+$ bash seed.sh menu_items --count 4
+Dynamic Widget
+Latest Dataset
+Optimized Queue
+Quick Block
+```
+
+TUI generators don't support `--format` — they output plain lines, ready for your TUI list.
+
+---
 
 ## Flags
 
-All generators support:
+| Flag | Default | Applies to |
+|---|---|---|
+| `--count <n>` | 1 (TUI: 10) | all generators |
+| `--format json\|kv\|csv\|sql` | json | record generators |
+| `--min <n>` / `--max <n>` | 1 / 100 | `seed_number` |
+| `--from <date>` / `--to <date>` | 2000-01-01 / today | `seed_date` |
+| `--words <n>` | — | `seed_lorem` |
+| `--sentences <n>` | — | `seed_lorem` |
+| `--items <n>` | 3 (max 10) | `seed_cart` |
 
-- `--count <int>` – Number of records (default: 1; TUI default: 10)
+---
 
-Additional flags for specific generators:
+## MCP server — for Claude Code
 
-- `--min <int>`, `--max <int>` – For `seed_number` and numeric generators
-- `--from <date>`, `--to <date>` – For `seed_date` (ISO 8601 format)
-- `--words <int>` – For `seed_lorem` (default: ~50)
-- `--sentences <int>` – For `seed_lorem` (default: varies)
-- `--items <int>` – For `seed_cart` (default: 3)
+Wire seed up as an MCP tool so Claude can generate fake data on demand, without spending tokens inventing it.
 
-## MCP Setup for Claude Code
+### Setup
 
-1. Copy `.mcp.json` to your project root:
-   ```bash
-   cp ~/lib/fissible/seed/.mcp.json /path/to/your/project/
-   ```
-
-   Or manually add to your project's `.mcp.json`:
-   ```json
-   {
-     "mcpServers": {
-       "seed": {
-         "command": "python3",
-         "args": ["/Users/allenmccabe/lib/fissible/seed/mcp/server.py"]
-       }
-     }
-   }
-   ```
-
-2. Restart Claude Code or reload the MCP server configuration.
-
-3. You can now use tools like `seed_name`, `seed_email`, `seed_product`, etc. directly in Claude Code to generate test data on demand.
-
-## Bash Compatibility
-
-Requires bash 3.2 or later (including macOS native bash, Docker, WSL). No external dependencies beyond core utilities (awk, tr, head).
-
-## Environment
-
-- `SEED_HOME` – Home directory of the seed repo (auto-detected from script location)
-- `SEED_DATA` – Data file directory (auto-detected, defaults to `$SEED_HOME/data`)
-
-## Examples
+**1. Clone the repo** (if you haven't):
 
 ```bash
-# Generate 5 JSON users
-bash seed.sh user --count 5 --format json
-
-# Generate 3 CSV products
-bash seed.sh product --count 3 --format csv
-
-# Generate a single CRM contact (JSON default)
-bash seed.sh contact
-
-# Generate 20 filenames for your test file list
-bash seed.sh filenames --count 20
-
-# Generate SQL insert statements for orders
-bash seed.sh order --count 5 --format sql
-
-# Use in a pipeline
-bash seed.sh email --count 100 | sort | uniq
-
-# Source as a library in your script
-source seed.sh
-for i in {1..5}; do seed_name; done
+git clone https://github.com/fissible/seed ~/lib/fissible/seed
+pip3 install mcp
 ```
 
-## Files
+**2. Add to your project's `.mcp.json`:**
+
+```json
+{
+  "mcpServers": {
+    "seed": {
+      "command": "python3",
+      "args": ["/path/to/fissible/seed/mcp/server.py"]
+    }
+  }
+}
+```
+
+Replace `/path/to/fissible/seed` with your actual clone path (e.g. `~/lib/fissible/seed`).
+
+**3. Restart Claude Code.**
+
+Claude will now have `seed_name`, `seed_user`, `seed_product`, and all other generators available as tools. When you ask for fake data, it calls the tools instead of hallucinating records — saving tokens and giving you consistent, realistic output.
+
+---
+
+## Compatibility
+
+- **Bash 3.2+** — works on macOS (native bash), Linux, Docker, WSL
+- **No external deps** — just `bash`, `awk`, `od`, and standard coreutils
+- **MCP server** — requires Python 3.x and `pip3 install mcp`
+
+---
+
+## File map
 
 ```
-fissible/seed/
-├── seed.sh              # Main CLI dispatcher and library entrypoint
-├── mcp/
-│   └── server.py        # Python MCP server (for Claude Code)
+seed/
+├── seed.sh              ← entrypoint (library + CLI)
 ├── src/
-│   ├── scalar.sh        # Atomic value generators (name, email, uuid, etc.)
-│   ├── record.sh        # Structured record generators (user, address, company)
-│   ├── ecommerce.sh     # E-commerce generators (product, order, coupon, etc.)
-│   ├── crm.sh           # CRM generators (contact, lead, deal, activity, etc.)
-│   └── tui.sh           # TUI helpers (filenames, dirtree, menu_items)
-├── data/                # Data files (names, emails, nouns, adjectives, etc.)
-├── tests/               # Integration tests (ptyunit)
-└── docker/              # Docker matrix for CI/CD
+│   ├── scalar.sh        ← name, email, uuid, date, number, lorem, ip, url, bool
+│   ├── record.sh        ← user, address, company + format helpers
+│   ├── ecommerce.sh     ← product, category, order, order_item, coupon, cart
+│   ├── crm.sh           ← contact, lead, deal, activity, note, tag
+│   └── tui.sh           ← filenames, dirtree, menu_items
+├── data/                ← names, domains, cities, nouns, adjectives, lorem…
+├── mcp/
+│   ├── server.py        ← FastMCP adapter (one tool per generator)
+│   └── requirements.txt
+└── tests/
+    ├── unit/            ← per-module bash tests (146 assertions)
+    ├── integration/     ← end-to-end CLI tests
+    └── mcp/             ← Python unit tests for the MCP adapter
 ```
+
+---
 
 ## License
 
-MIT
+MIT — use it, fork it, embed it.
