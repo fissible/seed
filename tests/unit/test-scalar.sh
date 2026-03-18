@@ -123,4 +123,15 @@ assert_eq "3" "$(seed_uuid --count 3 | wc -l | tr -d ' \t')" "seed_uuid --count 
 seed_name --format json 2>/dev/null
 assert_exit_code $? 2 "seed_name --format exits 2"
 
+ptyunit_test_begin "data file sizes"
+first_count=$(wc -l < "$SEED_HOME/data/first_names.txt" | tr -d ' ')
+last_count=$(wc -l  < "$SEED_HOME/data/last_names.txt"  | tr -d ' ')
+lorem_count=$(wc -l < "$SEED_HOME/data/lorem.txt"       | tr -d ' ')
+[[ "$first_count" -ge 140 ]]
+assert_exit_code $? 0 "first_names has >= 140 entries"
+[[ "$last_count"  -ge 140 ]]
+assert_exit_code $? 0 "last_names has >= 140 entries"
+[[ "$lorem_count" -ge 55 ]]
+assert_exit_code $? 0 "lorem has >= 55 entries"
+
 ptyunit_test_summary
