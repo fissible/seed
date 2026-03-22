@@ -82,6 +82,18 @@ assert_exit_code $? 2 "CLI name --format exits 2"
 $SH api_key --format json 2>/dev/null
 assert_exit_code $? 2 "CLI api_key --format exits 2"
 
+# --help / -h
+out=$($SH --help); ec=$?
+assert_exit_code $ec 0 "--help exits 0"
+assert_contains "$out" 'Usage' "--help output: Usage"
+assert_contains "$out" 'email' "--help output: email generator listed"
+assert_contains "$out" 'custom' "--help output: custom generator listed"
+assert_contains "$out" '--count' "--help output: --count flag listed"
+assert_contains "$out" '--schema' "--help output: --schema flag listed"
+
+out=$($SH -h)
+assert_contains "$out" 'Usage' "-h output: Usage"
+
 # seed_custom via CLI
 assert_contains "$(bash seed.sh custom --schema tests/fixtures/example.seed)" '"firstname"' "CLI custom json"
 assert_contains "$(bash seed.sh custom --schema tests/fixtures/example.seed --format sql)" 'INSERT INTO example_records' "CLI custom sql table name"
