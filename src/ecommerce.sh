@@ -5,17 +5,16 @@ seed_product() {
     _seed_parse_flags "$@" || return $?
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local noun adj sku price category desc stock
-        noun=$(_seed_random_line nouns)
-        adj=$(_seed_random_line adjectives)
-        # SKU: 3 uppercase letters + hyphen + 5 digits
-        sku=$(printf '%s-%05d' \
-            "$(printf '%s' "$adj$noun" | tr '[:lower:]' '[:upper:]' | tr -dc 'A-Z' | head -c 3)" \
-            "$(_seed_random_int 10000 99999)")
-        price=$(_seed_random_float 1.00 999.99)
-        category=$(_seed_random_line nouns)
-        desc=$(seed_lorem)
-        stock=$(_seed_random_int 0 500)
+        local adj noun sku_num sku_prefix sku price category desc stock
+        _seed_random_line_v adjectives;  adj="$_SEED_RESULT"
+        _seed_random_line_v nouns;       noun="$_SEED_RESULT"
+        _seed_random_int_v 10000 99999;  sku_num="$_SEED_RESULT"
+        sku_prefix=$(printf '%s' "$adj$noun" | tr '[:lower:]' '[:upper:]' | tr -dc 'A-Z' | head -c 3)
+        sku="${sku_prefix}-$(printf '%05d' "$sku_num")"
+        _seed_random_float_v 1.00 999.99; price="$_SEED_RESULT"
+        _seed_random_line_v nouns;        category="$_SEED_RESULT"
+        _seed_random_line_v lorem;        desc="$_SEED_RESULT"
+        _seed_random_int_v 0 500;         stock="$_SEED_RESULT"
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" products \
             name "${adj} ${noun}" sku "$sku" price "$price" \
@@ -36,10 +35,13 @@ seed_category() {
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
         local name slug parent
-        name=$(_seed_random_line nouns)
+        _seed_random_line_v nouns; name="$_SEED_RESULT"
         slug=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
         parent=""
-        [[ $(( RANDOM % 2 )) -eq 0 ]] && parent=$(_seed_random_line nouns)
+        _seed_random_int_v 0 1
+        if [[ "$_SEED_RESULT" -eq 0 ]]; then
+            _seed_random_line_v nouns; parent="$_SEED_RESULT"
+        fi
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" categories \
             name "$name" slug "$slug" parent_category "$parent")
@@ -59,13 +61,34 @@ seed_order() {
     local i=0 first=1
     local statuses
     statuses=("pending" "processing" "shipped" "delivered" "cancelled")
+    local today_val to_year
+    today_val=$(_seed_today)
+    to_year="${today_val:0:4}"
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local oid email status total created
-        oid=$(seed_uuid)
-        email=$(seed_email)
-        status="${statuses[$(_seed_random_int 0 $((${#statuses[@]} - 1)))]}"
-        total=$(_seed_random_float 5.00 9999.99)
-        created=$(seed_date)
+        local oid fn ln fl ll domain email status total
+        # UUID from /dev/urandom — subshell safe (no LCG)
+        oid=$(_seed_uuid_gen)
+        # Inline customer_email
+        _seed_random_line_v first_names; fn="$_SEED_RESULT"
+        _seed_random_line_v last_names;  ln="$_SEED_RESULT"
+        _seed_random_line_v domains;     domain="$_SEED_RESULT"
+        _seed_str_lower_v "$fn"; fl="$_SEED_RESULT"
+        _seed_str_lower_v "$ln"; ll="$_SEED_RESULT"
+        email="${fl}.${ll}@${domain}"
+        _seed_random_int_v 0 $(( ${#statuses[@]} - 1 ))
+        status="${statuses[$_SEED_RESULT]}"
+        _seed_random_float_v 5.00 9999.99; total="$_SEED_RESULT"
+        # Inline created date
+        local dy dm dd dmax created
+        _seed_random_int_v 2000 "$to_year"; dy="$_SEED_RESULT"
+        _seed_random_int_v 1 12; dm="$_SEED_RESULT"
+        case "$dm" in
+            1|3|5|7|8|10|12) dmax=31 ;;
+            4|6|9|11)         dmax=30 ;;
+            2) if (( dy % 400 == 0 || (dy % 4 == 0 && dy % 100 != 0) )); then dmax=29; else dmax=28; fi ;;
+        esac
+        _seed_random_int_v 1 "$dmax"; dd="$_SEED_RESULT"
+        created=$(printf '%04d-%02d-%02d' "$dy" "$dm" "$dd")
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" orders \
             order_id "$oid" customer_email "$email" status "$status" \
@@ -85,15 +108,15 @@ seed_order_item() {
     _seed_parse_flags "$@" || return $?
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local oid adj noun sku qty unit_price line_total
-        oid=$(seed_uuid)
-        adj=$(_seed_random_line adjectives)
-        noun=$(_seed_random_line nouns)
-        sku=$(printf '%s-%05d' \
-            "$(printf '%s' "$adj$noun" | tr '[:lower:]' '[:upper:]' | tr -dc 'A-Z' | head -c 3)" \
-            "$(_seed_random_int 10000 99999)")
-        qty=$(_seed_random_int 1 10)
-        unit_price=$(_seed_random_float 1.00 999.99)
+        local oid adj noun sku_num sku_prefix sku qty unit_price line_total
+        oid=$(_seed_uuid_gen)
+        _seed_random_line_v adjectives; adj="$_SEED_RESULT"
+        _seed_random_line_v nouns;      noun="$_SEED_RESULT"
+        _seed_random_int_v 10000 99999; sku_num="$_SEED_RESULT"
+        sku_prefix=$(printf '%s' "$adj$noun" | tr '[:lower:]' '[:upper:]' | tr -dc 'A-Z' | head -c 3)
+        sku="${sku_prefix}-$(printf '%05d' "$sku_num")"
+        _seed_random_int_v 1 10;          qty="$_SEED_RESULT"
+        _seed_random_float_v 1.00 999.99; unit_price="$_SEED_RESULT"
         line_total=$(awk "BEGIN { printf \"%.2f\", $qty * $unit_price }")
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" order_items \
@@ -113,12 +136,27 @@ seed_order_item() {
 seed_coupon() {
     _seed_parse_flags "$@" || return $?
     local i=0 first=1
+    local today_val from_year
+    today_val=$(_seed_today)
+    from_year="${today_val:0:4}"
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local code dtype value expires
+        local code dtype value
+        # coupon code: /dev/urandom — subshell safe (no LCG)
         code=$(od -An -N6 -tx1 /dev/urandom | tr -dc 'A-Z0-9' | head -c 8)
-        if [[ $(( RANDOM % 2 )) -eq 0 ]]; then dtype="pct"; else dtype="fixed"; fi
-        value=$(_seed_random_float 1.00 99.99)
-        expires=$(seed_date --from "$(_seed_today)" --to "2028-12-31")
+        _seed_random_int_v 0 1
+        if [[ "$_SEED_RESULT" -eq 0 ]]; then dtype="pct"; else dtype="fixed"; fi
+        _seed_random_float_v 1.00 99.99; value="$_SEED_RESULT"
+        # Inline date (from today to 2028-12-31)
+        local dy dm dd dmax expires
+        _seed_random_int_v "$from_year" 2028; dy="$_SEED_RESULT"
+        _seed_random_int_v 1 12; dm="$_SEED_RESULT"
+        case "$dm" in
+            1|3|5|7|8|10|12) dmax=31 ;;
+            4|6|9|11)         dmax=30 ;;
+            2) if (( dy % 400 == 0 || (dy % 4 == 0 && dy % 100 != 0) )); then dmax=29; else dmax=28; fi ;;
+        esac
+        _seed_random_int_v 1 "$dmax"; dd="$_SEED_RESULT"
+        expires=$(printf '%04d-%02d-%02d' "$dy" "$dm" "$dd")
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" coupons \
             code "$code" discount_type "$dtype" value "$value" expires_at "$expires")
@@ -145,24 +183,29 @@ seed_cart() {
 
     local ci=0 first=1
     while [[ $ci -lt $_SEED_FLAG_COUNT ]]; do
-        local cart_id customer_email subtotal
-        cart_id=$(seed_uuid)
-        customer_email=$(seed_email)
+        local cart_id fn ln fl ll domain customer_email subtotal
+        cart_id=$(_seed_uuid_gen)
+        # Inline customer_email
+        _seed_random_line_v first_names; fn="$_SEED_RESULT"
+        _seed_random_line_v last_names;  ln="$_SEED_RESULT"
+        _seed_random_line_v domains;     domain="$_SEED_RESULT"
+        _seed_str_lower_v "$fn"; fl="$_SEED_RESULT"
+        _seed_str_lower_v "$ln"; ll="$_SEED_RESULT"
+        customer_email="${fl}.${ll}@${domain}"
 
-        # Generate N items — use indexed arrays (bash 3.2 safe)
         local item_skus item_qtys item_prices item_totals
         item_skus=(); item_qtys=(); item_prices=(); item_totals=()
         subtotal="0"
         local ii=0
         while [[ $ii -lt $item_count ]]; do
-            local adj noun sku qty up lt
-            adj=$(_seed_random_line adjectives)
-            noun=$(_seed_random_line nouns)
-            sku=$(printf '%s-%05d' \
-                "$(printf '%s' "$adj$noun" | tr '[:lower:]' '[:upper:]' | tr -dc 'A-Z' | head -c 3)" \
-                "$(_seed_random_int 10000 99999)")
-            qty=$(_seed_random_int 1 10)
-            up=$(_seed_random_float 1.00 999.99)
+            local adj noun sku_num sku_prefix sku qty up lt
+            _seed_random_line_v adjectives; adj="$_SEED_RESULT"
+            _seed_random_line_v nouns;      noun="$_SEED_RESULT"
+            _seed_random_int_v 10000 99999; sku_num="$_SEED_RESULT"
+            sku_prefix=$(printf '%s' "$adj$noun" | tr '[:lower:]' '[:upper:]' | tr -dc 'A-Z' | head -c 3)
+            sku="${sku_prefix}-$(printf '%05d' "$sku_num")"
+            _seed_random_int_v 1 10;          qty="$_SEED_RESULT"
+            _seed_random_float_v 1.00 999.99; up="$_SEED_RESULT"
             lt=$(awk "BEGIN { printf \"%.2f\", $qty * $up }")
             item_skus[${#item_skus[@]}]="$sku"
             item_qtys[${#item_qtys[@]}]="$qty"

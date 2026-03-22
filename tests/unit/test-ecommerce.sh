@@ -51,4 +51,14 @@ assert_exit_code $? 0 "discount_type valid"
 # seed_category
 assert_contains "$(seed_category)" '"slug"' "seed_category has slug"
 
+ptyunit_test_begin "ecommerce distinctness with --seed"
+
+out=$(bash "$SEED_HOME/seed.sh" product --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_product --seed 42 --count 3: 3 distinct"
+
+out=$(bash "$SEED_HOME/seed.sh" order --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_order --seed 42 --count 3: 3 distinct"
+
 ptyunit_test_summary
