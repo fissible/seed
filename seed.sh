@@ -14,6 +14,7 @@ source "$SEED_HOME/src/tui.sh"
 source "$SEED_HOME/src/geo.sh"
 source "$SEED_HOME/src/finance.sh"
 source "$SEED_HOME/src/devops.sh"
+source "$SEED_HOME/src/new.sh"
 
 # ---------------------------------------------------------------------------
 # Internal: flag parser
