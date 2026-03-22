@@ -70,7 +70,9 @@ SEED_FIXTURES_DIR=db/seeds seed.sh custom --schema user --count 50
 2. If `_SEED_FLAG_SCHEMA` contains `/` → treat as a file path directly (CWD-relative, not `SEED_HOME`-relative)
 3. Otherwise → resolve to `${SEED_FIXTURES_DIR:-tests/fixtures}/${_SEED_FLAG_SCHEMA}.seed`
 
-**Adding `--schema` to `seed.sh`:**
+**Adding `--schema` to `seed.sh` — PREREQUISITE: implement this first.**
+
+`_seed_parse_flags` rejects unknown flags with exit 2. Until `--schema` is added to it, calling `seed_custom --schema foo` will fail at `_seed_parse_flags` before `seed_custom` can check `_SEED_FLAG_SCHEMA`. **Add this to `seed.sh` before writing or testing any `seed_custom` code.**
 
 In `seed.sh`'s `_seed_parse_flags` function, add `_SEED_FLAG_SCHEMA=""` to the reset block (after `_SEED_FLAG_PREFIX=""`), and add a `--schema` arm after the `--prefix` arm (before `--seed`):
 
@@ -87,9 +89,9 @@ _SEED_FLAG_SCHEMA=""
     _SEED_FLAG_SCHEMA="$2"; shift 2 ;;
 ```
 
-Also update the header comment in `_seed_parse_flags` to list `_SEED_FLAG_SCHEMA`.
+Also update the header comment line listing `_SEED_FLAG_*` globals to include `_SEED_FLAG_SCHEMA`.
 
-**Note:** All generators will silently accept `--schema` and ignore it, consistent with how `--min`, `--from`, `--prefix` etc. are already accepted by generators that don't use them.
+**Note:** All generators will silently accept `--schema` and ignore it, consistent with how `--min`, `--from`, `--prefix` etc. are already accepted by generators that don't use them. `--seed` handling is inherited from `_seed_parse_flags` (sets `_SEED_RNG_STATE` directly); `_seed_rng_init` is called lazily by `_seed_random_int_v` on first use, so no explicit call is needed in `seed_custom`.
 
 ---
 
@@ -127,14 +129,18 @@ _seed_cfield_phone()       {
     _SEED_RESULT=$(printf '%d%02d-%03d-%04d' "$a" "$b" "$c" "$d")
 }
 _seed_cfield_uuid()        {
-    # Deliberate exception: _seed_uuid_gen reads /dev/urandom, not the LCG.
-    # The subshell does not advance _SEED_RNG_STATE, which is correct because
-    # no LCG state is used inside _seed_uuid_gen.
+    # _seed_uuid_gen reads /dev/urandom and never touches _SEED_RNG_STATE.
+    # No LCG state is involved, so subshell isolation is not a concern here.
+    # Note: uuid fields are always non-reproducible (ignores --seed).
     _SEED_RESULT=$(_seed_uuid_gen)
 }
 _seed_cfield_date()        {
     # $1=from (YYYY-MM-DD, default 2000-01-01)  $2=to (YYYY-MM-DD, default today)
     # Adapted from seed_date in scalar.sh.
+    # Known limitation (consistent with seed_date): only the year portion of from/to
+    # is used as the year range. Month/day within the schema field line (e.g.
+    # --from 2024-06-01) have no effect on month or day selection; only the
+    # year "2024" is extracted. This is correct behavior for v1.1.
     local from="${1:-2000-01-01}" to="${2:-$(_seed_today)}"
     local from_year="${from:0:4}" to_year="${to:0:4}"
     local year month day max_day
@@ -165,7 +171,9 @@ _seed_cfield_bool()        {
     else _SEED_RESULT="false"; fi
 }
 _seed_cfield_lorem()       {
-    # $1=words $2=sentences (both optional; default: one line from lorem.txt)
+    # v1.1: always returns one sentence from lorem.txt regardless of $1/$2.
+    # --words and --sentences are parsed by the per-field parser but ignored here.
+    # (Full word/sentence control is a v1.2 enhancement.)
     _seed_random_line_v lorem
 }
 _seed_cfield_ip()          {
@@ -194,6 +202,8 @@ _seed_cfield_url()         {
 ## Per-Field Flag Parser
 
 The generator spec portion of a field line (e.g., `number --min 18 --max 80`) may contain flags. `seed_custom` parses them with a bash parameter-expansion loop before calling the `_seed_cfield_*` function. No `eval`, no external tools, bash 3.2 compatible.
+
+**No validation of flag values:** Per-field flag values are not validated. A malformed spec (e.g., `--min` with no following value) will silently assign the next token (or the next flag name) as the value. This is acceptable because schema files are author-controlled, not user input.
 
 ```bash
 # Given: flags="--min 18 --max 80"
@@ -260,7 +270,7 @@ seed_custom() {
     while IFS= read -r line; do
         # Skip comments, blank lines, and whitespace-only lines
         case "$line" in '#'*) continue ;; esac
-        [[ -z "${line// /}" ]] && continue
+        [[ -z "${line//[[:space:]]/}" ]] && continue  # strips spaces and tabs
         if [[ "$line" == table=* ]]; then
             table="${line#table=}"
         else
@@ -392,7 +402,8 @@ active|BOOLEAN|bool
 - All 4 output formats produce correct output (`json`, `kv`, `csv`, `sql`)
 - `--format sql` uses schema's table name: `INSERT INTO example_records`
 - `--count 3` produces 3 newline-separated records
-- `--seed 42 --count 3` with `example.seed` (6 fields) produces 3 fully distinct records (full-record `sort -u | wc -l` = 3; this tests the multi-field record, not individual field values)
+- LCG reproducibility: with a no-UUID schema (e.g., `name` + `age` + `active` fields), `--seed 42 --count 3` run twice produces identical output both times. Do NOT test reproducibility with `example.seed` since it contains a `uuid` field that reads `/dev/urandom` and is intentionally non-reproducible.
+- Distinctness: `--seed 42 --count 3` with `example.seed` (6 fields) produces 3 fully distinct records (`sort -u | wc -l` = 3); the UUID field guarantees this, but the test is still valid as an output-format check.
 - `--schema` omitted → exits 2 with message containing `--schema is required`
 - Unknown generator in schema → exits 2
 - Missing schema file → exits 2 with resolved path in message
