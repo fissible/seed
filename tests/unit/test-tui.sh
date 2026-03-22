@@ -32,4 +32,18 @@ assert_exit_code $? 2 "seed_dirtree --format exits 2"
 seed_menu_items --format json 2>/dev/null
 assert_exit_code $? 2 "seed_menu_items --format exits 2"
 
+ptyunit_test_begin "tui distinctness with --seed"
+
+out=$(bash "$SEED_HOME/seed.sh" filenames --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_filenames --seed 42 --count 3: 3 distinct"
+
+out=$(bash "$SEED_HOME/seed.sh" dirtree --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_dirtree --seed 42 --count 3: 3 distinct"
+
+out=$(bash "$SEED_HOME/seed.sh" menu_items --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_menu_items --seed 42 --count 3: 3 distinct"
+
 ptyunit_test_summary
