@@ -139,7 +139,7 @@ Record generator. Separate schema from `seed_log_entry`.
 
 **Output (JSON default):**
 ```json
-{"timestamp": "2024-03-15T14:23:45Z", "level": "ERROR", "service": "quick-block-api", "error_code": "E4029", "message": "connection timeout after 30000ms", "stack_trace": "Traceback (most recent call last):\n  File handler.py, line 42, in handle\n  File router.py, line 18, in process", "request_id": "uuid"}
+{"timestamp": "2024-03-15T14:23:45Z", "level": "ERROR", "service": "quick-block-api", "error_code": "E4029", "message": "connection timeout after 30000ms", "stack_trace": "File handler.py, line 42, in handle\\nFile router.py, line 18, in process", "request_id": "uuid"}
 ```
 
 - `level`: ERROR or FATAL — `_seed_random_int_v 0 1` + inline array.
@@ -150,8 +150,9 @@ Record generator. Separate schema from `seed_log_entry`.
 **Stack trace construction:**
 - 2–4 frames (`_seed_random_int_v 2 4`), Python-style.
 - Each frame: `File {noun}.py, line {N}, in {method}` where noun from `data/nouns.txt`, line number from `_seed_random_int_v 1 200`, method from inline array `(handle process execute validate parse dispatch run fetch connect)`. Note: no double-quote characters in the frame template — this is intentional so the frame string is JSON-safe as-is.
-- Frames are joined with **literal two-character `\n` escape sequences** (not real newlines), so the full stack trace string never contains a real newline. The trace is already valid JSON-escaped: backslash-n is the correct JSON encoding of a newline character, and no `"` characters appear in frame strings. **Do NOT pass the trace through `_seed_json_escape`** — that would double-escape the backslashes to `\\n`, producing invalid JSON.
-- Assembly: build trace by concatenating `frame1\\nframe2\\n...` using bash string concatenation. Never embed real newlines.
+- Frames are joined with **literal `\n` (backslash + n, assembled via bash string concatenation — not a real newline)**. No `"` characters appear in frame strings.
+- `_seed_emit_record` → `_seed_fmt_json` will internally call `_seed_json_escape` on the trace value, doubling the backslash: `\n` → `\\n`. The JSON file therefore contains `\\n` between frames, which JSON parsers decode as the two-character string `\n` (backslash + n). This is acceptable for a stack trace separator.
+- Assembly: build trace by concatenating `frame1\nframe2\n...` using bash string concatenation (the `\n` in a bash double-quoted string is a literal backslash + n). Never embed real newlines (`$'\n'`).
 
 **Format-conditional `stack_trace` field:**
 `stack_trace` is **omitted in CSV and SQL formats** (too unwieldy for tabular output). Included in JSON and KV. Since `_seed_emit_record` takes a flat argument list with no per-format field filtering, the implementation must conditionally build the argument list:
@@ -161,7 +162,7 @@ local st_args
 st_args=()
 if [[ "$_SEED_FLAG_FORMAT" != "csv" && "$_SEED_FLAG_FORMAT" != "sql" ]]; then
     # stack_trace value contains spaces — must use array to avoid word-splitting
-    # already JSON-safe (literal \n sequences, no double quotes) — do NOT call _seed_json_escape
+    # \n separators will be doubled by _seed_fmt_json internally (backslash → \\) — do not pre-escape
     st_args[0]="stack_trace"
     st_args[1]="$stack_trace"
 fi
@@ -330,5 +331,5 @@ Three new test files:
 - Bash 3.2+ throughout: no `declare -A`, no `+=`, no `${var,,}` — all array ops use `arr[${#arr[@]}]=val`
 - Country line parsing uses only bash parameter expansion (`${line%%|*}`, `${line#*|}`, `${rest%%|*}`, `${rest#*|}`)
 - `_seed_random_datetime_v` uses only `_seed_random_int_v` and `printf` for all LCG-driven fields; one non-LCG `$(_seed_today)` subshell called before the generator loop
-- Stack trace uses literal `\n` escape sequences (not real newlines) — compatible with `_seed_json_escape` as-is
-- `$st_args` word-splitting in `seed_error_log` is intentional (documented with comment)
+- Stack trace uses literal `\n` (backslash + n) as frame separator; `_seed_fmt_json` doubles it to `\\n` in JSON output — correct behavior
+- `seed_error_log` uses `st_args` as a bash array (`st_args[0]`/`st_args[1]`, expanded as `"${st_args[@]}"`) to avoid word-splitting on the trace value's spaces
