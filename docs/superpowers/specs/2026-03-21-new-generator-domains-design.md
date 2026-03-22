@@ -139,7 +139,7 @@ Record generator. Separate schema from `seed_log_entry`.
 
 **Output (JSON default):**
 ```json
-{"timestamp": "2024-03-15T14:23:45Z", "level": "ERROR", "service": "quick-block-api", "error_code": "E4029", "message": "connection timeout after 30000ms", "stack_trace": "Traceback (most recent call last):\n  File \"handler.py\", line 42, in handle\n  File \"router.py\", line 18, in process", "request_id": "uuid"}
+{"timestamp": "2024-03-15T14:23:45Z", "level": "ERROR", "service": "quick-block-api", "error_code": "E4029", "message": "connection timeout after 30000ms", "stack_trace": "Traceback (most recent call last):\n  File handler.py, line 42, in handle\n  File router.py, line 18, in process", "request_id": "uuid"}
 ```
 
 - `level`: ERROR or FATAL — `_seed_random_int_v 0 1` + inline array.
@@ -149,7 +149,7 @@ Record generator. Separate schema from `seed_log_entry`.
 
 **Stack trace construction:**
 - 2–4 frames (`_seed_random_int_v 2 4`), Python-style.
-- Each frame: `File "{noun}.py", line {N}, in {method}` where noun from `data/nouns.txt`, line number from `_seed_random_int_v 1 200`, method from inline array `(handle process execute validate parse dispatch run fetch connect)`.
+- Each frame: `File {noun}.py, line {N}, in {method}` where noun from `data/nouns.txt`, line number from `_seed_random_int_v 1 200`, method from inline array `(handle process execute validate parse dispatch run fetch connect)`. Note: no double-quote characters in the frame template — this is intentional so the frame string is JSON-safe as-is.
 - Frames are joined with **literal two-character `\n` escape sequences** (not real newlines), so the full stack trace string never contains a real newline. The trace is already valid JSON-escaped: backslash-n is the correct JSON encoding of a newline character, and no `"` characters appear in frame strings. **Do NOT pass the trace through `_seed_json_escape`** — that would double-escape the backslashes to `\\n`, producing invalid JSON.
 - Assembly: build trace by concatenating `frame1\\nframe2\\n...` using bash string concatenation. Never embed real newlines.
 
@@ -158,17 +158,18 @@ Record generator. Separate schema from `seed_log_entry`.
 
 ```bash
 local st_args
+st_args=()
 if [[ "$_SEED_FLAG_FORMAT" != "csv" && "$_SEED_FLAG_FORMAT" != "sql" ]]; then
-    # stack_trace is pre-built with literal \n sequences — already JSON-safe, do NOT call _seed_json_escape
-    st_args="stack_trace $stack_trace"
+    # stack_trace value contains spaces — must use array to avoid word-splitting
+    # already JSON-safe (literal \n sequences, no double quotes) — do NOT call _seed_json_escape
+    st_args[0]="stack_trace"
+    st_args[1]="$stack_trace"
 fi
-# $st_args deliberately unquoted for word-splitting into positional args:
-# shellcheck disable=SC2086
 rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" error_logs \
-    timestamp "$ts" level "$level" ... $st_args)
+    timestamp "$ts" level "$level" ... "${st_args[@]}")
 ```
 
-The unquoted `$st_args` expansion is intentional word-splitting — same pattern used in `seed_cart`. Document with a comment.
+The bash array expansion `"${st_args[@]}"` is empty when the format is CSV or SQL (no elements), and expands to exactly two positional arguments (`stack_trace` and the trace value) otherwise. When the array is empty, `"${st_args[@]}"` expands to nothing in bash 3.2+, so no extra arguments are passed. (Bash 3.2 compatible: uses `arr[N]=val` not `arr+=(...)`)
 
 ---
 
