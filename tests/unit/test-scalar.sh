@@ -256,7 +256,7 @@ year="${_SEED_RESULT:0:4}"
 [[ "$year" -ge 2000 && "$year" -le 2025 ]]
 assert_exit_code $? 0 "_seed_random_datetime_v year in range"
 
-# Variety: 5 calls must not all return identical results
+# Variety: 3 calls must not all return identical results
 dt1=""; dt2=""; dt3=""
 _seed_random_datetime_v 2025; dt1="$_SEED_RESULT"
 _seed_random_datetime_v 2025; dt2="$_SEED_RESULT"

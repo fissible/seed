@@ -252,6 +252,7 @@ _seed_is_numeric() {
 # Takes to_year as $1. Caller must compute to_year=$(_seed_today | cut -c1-4)
 # once before the loop. Writes "YYYY-MM-DDThh:mm:ssZ" to _SEED_RESULT.
 # All LCG advances in the caller's process — no subshells.
+# Lower bound is fixed at year 2000 (sufficient for all current generators).
 # ---------------------------------------------------------------------------
 _seed_random_datetime_v() {
     local dy dm dd dmax dh dmin ds
