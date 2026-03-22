@@ -105,6 +105,11 @@ def seed_company(count: int = 1, format: str = "json") -> str:
     """Generate company records with flat address fields."""
     return _run("company", count=count, format=format)
 
+@mcp.tool()
+def seed_db_credentials(count: int = 1, format: str = "json") -> str:
+    """Generate database credentials: host, port, database, username, password."""
+    return _run("db_credentials", count=count, format=format)
+
 # --- Ecommerce tools ---
 
 @mcp.tool()
@@ -168,6 +173,42 @@ def seed_note(count: int = 1, format: str = "json") -> str:
 def seed_tag(count: int = 1, format: str = "json") -> str:
     """Generate tags: name, color (hex)."""
     return _run("tag", count=count, format=format)
+
+# --- Geo tools ---
+
+@mcp.tool()
+def seed_coordinates(count: int = 1, format: str = "json") -> str:
+    """Generate worldwide latitude/longitude pairs. lat/lng have 4 decimal places."""
+    return _run("coordinates", count=count, format=format)
+
+@mcp.tool()
+def seed_country(count: int = 1, format: str = "json") -> str:
+    """Generate country records: 2-letter ISO code, name, region (Europe/Asia/Americas/Africa/Oceania/Middle East)."""
+    return _run("country", count=count, format=format)
+
+# --- Finance tools ---
+
+@mcp.tool()
+def seed_credit_card(count: int = 1, format: str = "json") -> str:
+    """Generate Luhn-valid credit cards: type (Visa/Mastercard/Amex/Discover), number, expiry (MM/YY), cvv."""
+    return _run("credit_card", count=count, format=format)
+
+# --- DevOps tools ---
+
+@mcp.tool()
+def seed_log_entry(count: int = 1, format: str = "json") -> str:
+    """Generate structured log records: timestamp, level (DEBUG/INFO/WARN/ERROR), service, message, request_id."""
+    return _run("log_entry", count=count, format=format)
+
+@mcp.tool()
+def seed_error_log(count: int = 1, format: str = "json") -> str:
+    """Generate error log records with stack traces: timestamp, level (ERROR/FATAL), service, error_code, message, stack_trace (JSON/KV only), request_id."""
+    return _run("error_log", count=count, format=format)
+
+@mcp.tool()
+def seed_api_key(count: int = 1, prefix: str = None) -> str:
+    """Generate prefixed 32-char hex API keys. Default prefix: sk_. Override with prefix param (e.g. 'pk_live_'). Does not support format."""
+    return _run("api_key", count=count, prefix=prefix)
 
 # --- TUI helpers ---
 
