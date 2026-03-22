@@ -9,10 +9,10 @@
 # ---------------------------------------------------------------------------
 seed_coordinates() {
     _seed_parse_flags "$@" || return $?
+    _seed_rng_init
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
         local lat lng
-        _seed_rng_init
         _SEED_RNG_STATE=$(( (1664525 * _SEED_RNG_STATE + 1013904223) % 4294967296 ))
         lat=$(awk -v s="$_SEED_RNG_STATE" 'BEGIN { printf "%.4f", (s / 4294967296.0) * 180.0 - 90.0 }')
         _SEED_RNG_STATE=$(( (1664525 * _SEED_RNG_STATE + 1013904223) % 4294967296 ))
