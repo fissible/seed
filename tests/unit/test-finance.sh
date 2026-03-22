@@ -16,6 +16,8 @@ assert_contains "$out" '"cvv"' "seed_credit_card has cvv"
 # number and cvv are numeric (unquoted in JSON)
 [[ "$out" =~ \"number\":[0-9] ]]
 assert_exit_code $? 0 "seed_credit_card number is unquoted numeric"
+[[ "$out" =~ \"cvv\":[0-9] ]]
+assert_exit_code $? 0 "seed_credit_card cvv is unquoted numeric"
 
 # Luhn validity — extract raw number value and verify sum % 10 == 0
 raw_num=$(printf '%s\n' "$out" | grep -o '"number":[0-9]*' | cut -d: -f2)
@@ -37,6 +39,15 @@ assert_exit_code $? 0 "expiry matches MM/YY format"
 
 # Type-specific prefix checks — generate 100 cards, verify prefixes
 cards=$(bash "$SEED_HOME/seed.sh" credit_card --seed 42 --count 100)
+# Assert all four types appear in 100 cards so conditional checks below cannot silently skip
+[[ $(printf '%s\n' "$cards" | grep -c '"type":"Visa"') -gt 0 ]]
+assert_exit_code $? 0 "100 cards include at least one Visa"
+[[ $(printf '%s\n' "$cards" | grep -c '"type":"Mastercard"') -gt 0 ]]
+assert_exit_code $? 0 "100 cards include at least one Mastercard"
+[[ $(printf '%s\n' "$cards" | grep -c '"type":"Amex"') -gt 0 ]]
+assert_exit_code $? 0 "100 cards include at least one Amex"
+[[ $(printf '%s\n' "$cards" | grep -c '"type":"Discover"') -gt 0 ]]
+assert_exit_code $? 0 "100 cards include at least one Discover"
 visa=$(printf '%s\n' "$cards" | grep '"type":"Visa"' | head -1)
 if [[ -n "$visa" ]]; then
     [[ "$visa" =~ \"number\":4 ]]
