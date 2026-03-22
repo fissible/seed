@@ -106,6 +106,7 @@ assert_eq "VARCHAR(100)" "$(_seed_new_infer_sql_type last_name)"   "last_name �
 assert_eq "VARCHAR(100)" "$(_seed_new_infer_sql_type name)"        "name → VARCHAR(100)"
 assert_eq "VARCHAR(100)" "$(_seed_new_infer_sql_type phone)"       "phone → VARCHAR(100)"
 assert_eq "TEXT"         "$(_seed_new_infer_sql_type lorem)"       "lorem → TEXT"
+assert_eq "VARCHAR(255)" "$(_seed_new_infer_sql_type unknown_gen)" "unknown → VARCHAR(255) fallback"
 
 ptyunit_test_summary
 ```
@@ -199,6 +200,11 @@ assert_exit_code $? 0 "_seed_new_build_schema: --to absent when not in gen_spec"
 out=$(_seed_new_build_schema posts body "lorem --sentences 2")
 assert_contains "$out" 'body|TEXT|lorem --sentences 2' \
     "_seed_new_build_schema: lorem --sentences"
+
+# Note: the spec mentions a "lorem --words priority" test where both words AND sentences
+# are provided. The wizard prevents this scenario by only prompting for Sentences when
+# Words is blank — so both flags can never be set simultaneously. The builder itself
+# just passes through whatever gen_spec it receives (no mutual-exclusion logic needed here).
 ```
 
 - [ ] **Step 2: Run tests to verify new assertions fail**
@@ -403,15 +409,13 @@ _seed_new_custom_schema() {
             while true; do
                 printf 'Select generator [1-12, Enter to finish]: '
                 read -r gen_num
-                if [[ -z "$gen_num" ]]; then
-                    col=""                  # signal shortcut exit
-                    break
-                fi
-                if [[ "$gen_num" =~ ^([1-9]|1[0-2])$ ]]; then
-                    gen_name="${_GENS[$gen_num]}"
-                    break
-                fi
-                printf 'Invalid selection. Enter a number 1-12 or press Enter to finish.\n' >&2
+                # Use case for bash 3.2 safety (=~ with groups is fragile in 3.2)
+                case "$gen_num" in
+                    '')          col=""; break ;;   # shortcut exit
+                    [1-9]|10|11|12)
+                                 gen_name="${_GENS[$gen_num]}"; break ;;
+                    *)           printf 'Invalid selection. Enter a number 1-12 or press Enter to finish.\n' >&2 ;;
+                esac
             done
             [[ -z "$col" ]] && break        # shortcut exit from empty gen selection
 
@@ -422,15 +426,19 @@ _seed_new_custom_schema() {
                     local fmin="" fmax=""
                     printf '  Min value [1]: ';     read -r fmin
                     printf '  Max value [100]: ';   read -r fmax
-                    [[ -n "$fmin" ]]  && gen_spec="${gen_spec} --min ${fmin}"
-                    [[ -n "$fmax" ]]  && gen_spec="${gen_spec} --max ${fmax}"
+                    # Omit flag when blank OR when user typed the default value
+                    # (spec: "flag written only when value differs from default")
+                    [[ -n "$fmin" && "$fmin" != "1" ]]   && gen_spec="${gen_spec} --min ${fmin}"
+                    [[ -n "$fmax" && "$fmax" != "100" ]] && gen_spec="${gen_spec} --max ${fmax}"
                     ;;
                 date)
                     local ffrom="" fto=""
                     printf '  From date [2000-01-01]: '; read -r ffrom
                     printf '  To date [today]: ';        read -r fto
-                    [[ -n "$ffrom" ]] && gen_spec="${gen_spec} --from ${ffrom}"
-                    [[ -n "$fto" ]]   && gen_spec="${gen_spec} --to ${fto}"
+                    # From: omit if blank or user typed the default "2000-01-01"
+                    # To: omit if blank (blank means "today", the implicit default)
+                    [[ -n "$ffrom" && "$ffrom" != "2000-01-01" ]] && gen_spec="${gen_spec} --from ${ffrom}"
+                    [[ -n "$fto" ]]                                && gen_spec="${gen_spec} --to ${fto}"
                     ;;
                 lorem)
                     local fwords="" fsentences=""
@@ -489,16 +497,14 @@ _seed_new_custom_schema() {
         # Branch 1: auto-write, no prompt
         outpath="tests/fixtures/${table}.seed"
     elif [[ -d "tests" ]]; then
-        # Branch 2: tests/ exists, fixtures/ does not — prompt with default.
-        # Re-prompt if user enters blank (even though a default is shown, the
-        # user may have accidentally pressed Enter; loop until non-empty path).
+        # Branch 2: tests/ exists, fixtures/ does not — prompt with default shown.
+        # Blank input → use default. No re-prompt needed: the default is always
+        # non-empty, so outpath is guaranteed non-empty after this block.
         local _default_path="tests/fixtures/${table}.seed"
-        while [[ -z "$outpath" ]]; do
-            printf 'Save to [%s]: ' "$_default_path"
-            local ans=""
-            read -r ans
-            outpath="${ans:-$_default_path}"
-        done
+        printf 'Save to [%s]: ' "$_default_path"
+        local ans=""
+        read -r ans
+        outpath="${ans:-$_default_path}"
     else
         # Branch 3: no tests/ at all — prompt with no default, re-prompt if blank
         while [[ -z "$outpath" ]]; do
@@ -573,7 +579,29 @@ id|VARCHAR(36)|uuid
 rm tests/fixtures/smoke_test.seed
 ```
 
-- [ ] **Step 6: Test TTY guard**
+- [ ] **Step 6: Manually test output path branches 2 and 3**
+
+After Step 3, `tests/fixtures/` exists — branch 1 always fires from the repo root. To verify branches 2 and 3, test from a temp directory:
+
+```bash
+# Branch 2: tests/ exists, tests/fixtures/ does not
+mkdir -p /tmp/seedtest/tests
+cd /tmp/seedtest
+bash /path/to/seed.sh new custom-schema
+# Expected: prompts "Save to [tests/fixtures/<table>.seed]:" — Enter uses default, explicit path overrides
+cd -
+rm -rf /tmp/seedtest
+
+# Branch 3: neither tests/ nor tests/fixtures/ exists
+mkdir /tmp/seedtest3
+cd /tmp/seedtest3
+bash /path/to/seed.sh new custom-schema
+# Expected: prompts "Save to:" with no default — blank re-prompts
+cd -
+rm -rf /tmp/seedtest3
+```
+
+- [ ] **Step 7: Test TTY guard**
 
 ```bash
 echo "" | bash seed.sh new custom-schema
@@ -581,7 +609,7 @@ echo "Exit code: $?"
 ```
 Expected: prints `seed new: requires an interactive terminal`, exit code 1.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/new.sh tests/fixtures/.gitkeep
