@@ -162,13 +162,14 @@ operation timed out after 5000ms
 invalid argument: expected positive integer, got -1
 ```
 
-- [ ] **Step 3: Verify line counts**
+- [ ] **Step 3: Verify line counts and no leading whitespace**
 
 ```bash
 wc -l data/countries.txt data/error_messages.txt
+grep -n '^ ' data/countries.txt || echo "no leading whitespace — OK"
 ```
 
-Expected: countries ≥ 60 lines, error_messages ≥ 25 lines.
+Expected: countries ≥ 60 lines, error_messages ≥ 25 lines, no leading-whitespace lines in countries.txt.
 
 - [ ] **Step 4: Commit**
 
