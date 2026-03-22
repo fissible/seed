@@ -159,15 +159,16 @@ seed_address() {
     _seed_parse_flags "$@" || return $?
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local street city state zip country
-        street="$(_seed_random_int 1 9999) $(_seed_random_line streets)"
-        city=$(_seed_random_line cities)
-        state=$(_seed_random_state)
-        zip=$(_seed_random_zip)
-        country="US"
+        local num strname street city state zip
+        _seed_random_int_v 1 9999;   num="$_SEED_RESULT"
+        _seed_random_line_v streets; strname="$_SEED_RESULT"
+        street="$num $strname"
+        _seed_random_line_v cities;  city="$_SEED_RESULT"
+        _seed_random_state_v;        state="$_SEED_RESULT"
+        _seed_random_zip_v;          zip="$_SEED_RESULT"
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" addresses \
-            street "$street" city "$city" state "$state" zip "$zip" country "$country")
+            street "$street" city "$city" state "$state" zip "$zip" country "US")
         if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
             if [[ $first -eq 1 ]]; then printf '%s\n' "$rec"; first=0
             else printf '%s\n' "$rec" | tail -n 1; fi
@@ -189,19 +190,25 @@ seed_company() {
     _seed_parse_flags "$@" || return $?
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local name domain phone street city state zip country
-        name=$(_seed_random_line companies)
-        domain=$(_seed_random_line domains)
-        phone=$(seed_phone)
-        street="$(_seed_random_int 1 9999) $(_seed_random_line streets)"
-        city=$(_seed_random_line cities)
-        state=$(_seed_random_state)
-        zip=$(_seed_random_zip)
-        country="US"
+        local name domain a b c d phone num strname street city state zip
+        _seed_random_line_v companies; name="$_SEED_RESULT"
+        _seed_random_line_v domains;   domain="$_SEED_RESULT"
+        # Inline phone
+        _seed_random_int_v 2 9;       a="$_SEED_RESULT"
+        _seed_random_int_v 10 99;     b="$_SEED_RESULT"
+        _seed_random_int_v 100 999;   c="$_SEED_RESULT"
+        _seed_random_int_v 1000 9999; d="$_SEED_RESULT"
+        phone=$(printf '%d%02d-%03d-%04d' "$a" "$b" "$c" "$d")
+        _seed_random_int_v 1 9999;    num="$_SEED_RESULT"
+        _seed_random_line_v streets;  strname="$_SEED_RESULT"
+        street="$num $strname"
+        _seed_random_line_v cities;   city="$_SEED_RESULT"
+        _seed_random_state_v;         state="$_SEED_RESULT"
+        _seed_random_zip_v;           zip="$_SEED_RESULT"
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" companies \
             name "$name" domain "$domain" phone "$phone" \
-            street "$street" city "$city" state "$state" zip "$zip" country "$country")
+            street "$street" city "$city" state "$state" zip "$zip" country "US")
         if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
             if [[ $first -eq 1 ]]; then printf '%s\n' "$rec"; first=0
             else printf '%s\n' "$rec" | tail -n 1; fi

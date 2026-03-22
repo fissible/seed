@@ -104,4 +104,14 @@ out=$(bash "$SEED_HOME/seed.sh" user --seed 42 --count 3)
 assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
     "seed_user --seed 42 --count 3: 3 distinct records"
 
+ptyunit_test_begin "address and company distinctness"
+
+out=$(bash "$SEED_HOME/seed.sh" address --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_address --seed 42 --count 3: 3 distinct"
+
+out=$(bash "$SEED_HOME/seed.sh" company --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_company --seed 42 --count 3: 3 distinct"
+
 ptyunit_test_summary
