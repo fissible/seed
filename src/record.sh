@@ -221,3 +221,45 @@ seed_company() {
         i=$((i+1))
     done
 }
+
+# ---------------------------------------------------------------------------
+# seed_db_credentials [--count N] [--format json|kv|csv|sql]
+# Fields: host, port (numeric), database, username (db_user_N), password (10 chars)
+# ---------------------------------------------------------------------------
+seed_db_credentials() {
+    _seed_parse_flags "$@" || return $?
+    local -a ports=()
+    local p
+    for p in $_SEED_DB_PORTS; do ports[${#ports[@]}]="$p"; done
+    local chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local i=0 first=1
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        local host port database username password
+        _seed_random_line_v domains; host="$_SEED_RESULT"
+        _seed_random_int_v 0 $(( ${#ports[@]} - 1 ))
+        port="${ports[$_SEED_RESULT]}"
+        _seed_random_line_v nouns; database="$_SEED_RESULT"
+        _seed_random_int_v 1 999; username="db_user_$_SEED_RESULT"
+        local pwd="" j=0
+        while [[ $j -lt 10 ]]; do
+            _seed_random_int_v 0 61
+            pwd="${pwd}${chars:$_SEED_RESULT:1}"
+            j=$((j+1))
+        done
+        password="$pwd"
+        local rec
+        rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" db_credentials \
+            host "$host" port "$port" database "$database" \
+            username "$username" password "$password")
+        if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
+            if [[ $first -eq 1 ]]; then printf '%s\n' "$rec"; first=0
+            else printf '%s\n' "$rec" | tail -n 1; fi
+        elif [[ "$_SEED_FLAG_FORMAT" == "kv" ]]; then
+            [[ $first -eq 0 ]] && printf '\n'
+            printf '%s\n' "$rec"; first=0
+        else
+            printf '%s\n' "$rec"
+        fi
+        i=$((i+1))
+    done
+}

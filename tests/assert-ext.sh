@@ -22,3 +22,15 @@ assert_not_empty() {
         printf 'FAIL — %s: expected non-empty string\n' "$msg"
     fi
 }
+
+# Assert a string contains a substring.
+# Usage: assert_contains <haystack> <needle> [message]
+assert_contains() {
+    local haystack="$1" needle="$2" msg="${3:-contains}"
+    if [[ "$haystack" == *"$needle"* ]]; then
+        (( _PTYUNIT_TEST_PASS++ ))
+    else
+        (( _PTYUNIT_TEST_FAIL++ ))
+        printf 'FAIL — %s: expected %q to contain %q\n' "$msg" "$haystack" "$needle"
+    fi
+}

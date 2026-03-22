@@ -114,4 +114,26 @@ out=$(bash "$SEED_HOME/seed.sh" company --seed 42 --count 3)
 assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
     "seed_company --seed 42 --count 3: 3 distinct"
 
+ptyunit_test_begin "seed_db_credentials"
+
+out=$(seed_db_credentials)
+assert_contains "$out" '"host"'     "db_credentials has host"
+assert_contains "$out" '"port"'     "db_credentials has port"
+assert_contains "$out" '"database"' "db_credentials has database"
+assert_contains "$out" '"username"' "db_credentials has username"
+assert_contains "$out" '"password"' "db_credentials has password"
+
+# username matches db_user_<N>
+[[ "$(seed_db_credentials)" =~ \"username\":\"db_user_[0-9]+\" ]]
+assert_exit_code $? 0 "db_credentials username format"
+
+# password is 10 chars
+pwd_val=$(printf '%s' "$(seed_db_credentials)" | grep -o '"password":"[^"]*"' | cut -d'"' -f4)
+assert_eq "10" "${#pwd_val}" "db_credentials password length 10"
+
+# distinctness
+out=$(bash "$SEED_HOME/seed.sh" db_credentials --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_db_credentials --seed 42 --count 3: 3 distinct"
+
 ptyunit_test_summary

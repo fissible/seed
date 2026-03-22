@@ -436,3 +436,52 @@ seed_bool() {
         i=$((i+1))
     done
 }
+
+# ---------------------------------------------------------------------------
+# Shared port list for seed_port and seed_db_credentials.
+# Space-separated string — build array with loop (bash 3.2 compatible).
+# ---------------------------------------------------------------------------
+_SEED_DB_PORTS="5432 3306 6379 27017 8080 8000 3000 9200 5672 9042 1433 1521 26257 8086 11211"
+
+seed_host() {
+    _seed_has_format_flag "$@" && { printf 'seed_host: --format not valid for scalar generators\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        _seed_random_line_v domains
+        printf '%s\n' "$_SEED_RESULT"
+        i=$((i+1))
+    done
+}
+
+seed_port() {
+    _seed_has_format_flag "$@" && { printf 'seed_port: --format not valid for scalar generators\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local -a ports=()
+    local p
+    for p in $_SEED_DB_PORTS; do ports[${#ports[@]}]="$p"; done
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        _seed_random_int_v 0 $(( ${#ports[@]} - 1 ))
+        printf '%s\n' "${ports[$_SEED_RESULT]}"
+        i=$((i+1))
+    done
+}
+
+seed_password() {
+    _seed_has_format_flag "$@" && { printf 'seed_password: --format not valid for scalar generators\n' >&2; return 2; }
+    _seed_parse_flags "$@" || return $?
+    local chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local length="${_SEED_FLAG_LENGTH:-10}"
+    local i=0
+    while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
+        local pwd="" j=0
+        while [[ $j -lt $length ]]; do
+            _seed_random_int_v 0 61
+            pwd="${pwd}${chars:$_SEED_RESULT:1}"
+            j=$((j+1))
+        done
+        printf '%s\n' "$pwd"
+        i=$((i+1))
+    done
+}

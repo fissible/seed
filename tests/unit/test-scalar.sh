@@ -210,4 +210,36 @@ assert_eq "2" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
 assert_not_empty "$(bash "$SEED_HOME/seed.sh" name)" "seed_name standalone post-refactor"
 assert_not_empty "$(bash "$SEED_HOME/seed.sh" email)" "seed_email standalone post-refactor"
 
+ptyunit_test_begin "network scalar generators"
+
+# seed_host: bare hostname, no scheme or path
+assert_not_empty "$(seed_host)" "seed_host not empty"
+[[ "$(seed_host)" =~ ^[a-z0-9.-]+\.[a-z]{2,}$ ]]
+assert_exit_code $? 0 "seed_host format (no scheme, no path)"
+
+# seed_port: must be one of the well-known port values
+port=$(seed_port)
+assert_not_empty "$port" "seed_port not empty"
+[[ "$port" =~ ^[0-9]+$ ]]
+assert_exit_code $? 0 "seed_port is numeric"
+# verify it's in the known list
+echo "5432 3306 6379 27017 8080 8000 3000 9200 5672 9042 1433 1521 26257 8086 11211" | grep -wq "$port"
+assert_exit_code $? 0 "seed_port is a known port"
+
+# seed_password: alphanumeric, default length 10
+pwd=$(seed_password)
+assert_not_empty "$pwd" "seed_password not empty"
+assert_eq "10" "${#pwd}" "seed_password default length 10"
+[[ "$pwd" =~ ^[A-Za-z0-9]+$ ]]
+assert_exit_code $? 0 "seed_password alphanumeric only"
+
+# seed_password --length 20
+pwd=$(seed_password --length 20)
+assert_eq "20" "${#pwd}" "seed_password --length 20"
+
+# seed_password --seed 42 --count 3: 3 distinct passwords
+out=$(bash "$SEED_HOME/seed.sh" password --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_password --seed 42 --count 3: 3 distinct"
+
 ptyunit_test_summary
