@@ -13,6 +13,7 @@ source "$SEED_HOME/src/crm.sh"
 source "$SEED_HOME/src/tui.sh"
 source "$SEED_HOME/src/geo.sh"
 source "$SEED_HOME/src/finance.sh"
+source "$SEED_HOME/src/devops.sh"
 
 # ---------------------------------------------------------------------------
 # Internal: flag parser
