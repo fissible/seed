@@ -82,4 +82,10 @@ assert_exit_code $? 2 "CLI name --format exits 2"
 $SH api_key --format json 2>/dev/null
 assert_exit_code $? 2 "CLI api_key --format exits 2"
 
+# seed_custom via CLI
+assert_contains "$(bash seed.sh custom --schema tests/fixtures/example.seed)" '"firstname"' "CLI custom json"
+assert_contains "$(bash seed.sh custom --schema tests/fixtures/example.seed --format sql)" 'INSERT INTO example_records' "CLI custom sql table name"
+bash seed.sh custom 2>/dev/null
+assert_exit_code $? 2 "CLI custom --schema required"
+
 ptyunit_test_summary

@@ -1,0 +1,9 @@
+# Example custom schema — copy and adapt for your project
+# Usage: seed.sh custom --schema example --count 10 --format sql
+table=example_records
+id|VARCHAR(36)|uuid
+firstname|VARCHAR(50)|first_name
+email|VARCHAR(255)|email
+age|INT|number --min 18 --max 80
+created_at|TIMESTAMP|date --from 2020-01-01
+active|BOOLEAN|bool

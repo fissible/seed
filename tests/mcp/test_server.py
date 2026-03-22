@@ -117,5 +117,24 @@ class TestRun(unittest.TestCase):
         self.assertNotIn('--prefix', captured['args'])
 
 
+    def test_seed_custom_tool_exists(self):
+        """seed_custom is registered as an MCP tool."""
+        self.assertTrue(hasattr(self.server, 'seed_custom'))
+        self.assertTrue(callable(self.server.seed_custom))
+
+    def test_seed_custom_passes_schema(self):
+        """seed_custom maps schema param to --schema flag."""
+        captured = {}
+        def fake_run(args, **kwargs):
+            captured['args'] = args
+            m = MagicMock()
+            m.stdout = '{}'
+            return m
+        with patch('subprocess.run', fake_run):
+            self.server.seed_custom(schema='example')
+        self.assertIn('--schema', captured['args'])
+        self.assertIn('example', captured['args'])
+
+
 if __name__ == '__main__':
     unittest.main()
