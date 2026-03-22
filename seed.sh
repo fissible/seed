@@ -126,6 +126,91 @@ _seed_parse_flags() {
 }
 
 # ---------------------------------------------------------------------------
+# Internal: print help and exit 0.
+# ---------------------------------------------------------------------------
+_seed_print_help() {
+    cat <<'EOF'
+Usage: seed.sh <generator> [flags]
+
+Generators:
+  Scalar
+    name            Full name (first + last)
+    first_name      First name
+    last_name       Last name
+    email           Email address
+    phone           US phone number (NXX-NXX-XXXX)
+    uuid            UUID v4
+    date            ISO date (YYYY-MM-DD)
+    number          Random integer
+    lorem           Lorem ipsum text
+    ip              IPv4 address
+    url             HTTPS URL
+    bool            true or false
+    host            Hostname / domain
+    port            Database port
+    password        Random alphanumeric password
+
+  Record
+    user            User profile
+    address         US address
+    company         Company with address
+    db_credentials  Database credentials
+
+  Ecommerce
+    product         Product with SKU and price
+    category        Product category
+    order           Order with status and total
+    order_item      Line item for an order
+    coupon          Discount coupon
+    cart            Cart with embedded items
+
+  CRM
+    contact         CRM contact
+    lead            Sales lead
+    deal            Sales deal
+    activity        CRM activity (call/email/meeting)
+    note            Note linked to contact or deal
+    tag             Tag with color
+
+  Geo
+    coordinates     lat/lng pair
+    country         Country with ISO code and region
+
+  Finance
+    credit_card     Luhn-valid credit card
+
+  DevOps
+    log_entry       Structured log record
+    error_log       Error log with stack trace
+    api_key         Prefixed hex API key
+
+  TUI
+    filenames       Realistic filenames
+    dirtree         Directory paths
+    menu_items      Title-cased menu labels
+
+  Custom
+    custom          Records from a .seed schema file
+    new             Create a new schema file (wizard)
+
+Flags:
+  --count N        Number of records (default: 1)
+  --format F       Output format: json kv csv sql (default: json)
+  --seed N         RNG seed for reproducible output
+  --schema NAME    Schema name or path (required for: custom)
+  --min N          Minimum value (number)
+  --max N          Maximum value (number)
+  --from DATE      Start date YYYY-MM-DD (date)
+  --to DATE        End date YYYY-MM-DD (date)
+  --words N        Word count (lorem)
+  --sentences N    Sentence count (lorem)
+  --items N        Items per cart (cart)
+  --length N       String length (password)
+  --prefix STR     Key prefix (api_key)
+EOF
+}
+
+# ---------------------------------------------------------------------------
 # Internal: check if --format was explicitly passed in raw args
 # Used by scalar generators to reject the flag before calling _seed_parse_flags.
 # ---------------------------------------------------------------------------
@@ -146,6 +231,10 @@ _seed_cli() {
         printf 'Usage: seed.sh <generator> [flags]\n' >&2
         return 1
     fi
+
+    case "$1" in
+        --help|-h) _seed_print_help; return 0 ;;
+    esac
 
     local gen="$1"; shift
 
