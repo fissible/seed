@@ -17,14 +17,17 @@ No runtime. No package manager. No dependencies beyond bash and awk.
 
 ## What's in the box
 
-**31 generators** across 5 categories, 4 output formats, and an MCP server that turns Claude into a data factory.
+**37 generators** across 8 categories, 4 output formats, and an MCP server that turns Claude into a data factory.
 
 | Category | Generators |
 |---|---|
 | Scalar | `name` `email` `phone` `uuid` `date` `number` `lorem` `ip` `url` `bool` `first_name` `last_name` |
-| Record | `user` `address` `company` |
+| Record | `user` `address` `company` `db_credentials` |
 | Ecommerce | `product` `category` `order` `order_item` `coupon` `cart` |
 | CRM | `contact` `lead` `deal` `activity` `note` `tag` |
+| Geo | `coordinates` `country` |
+| Finance | `credit_card` |
+| DevOps | `log_entry` `error_log` `api_key` |
 | TUI | `filenames` `dirtree` `menu_items` |
 
 ---
@@ -161,6 +164,8 @@ TUI generators don't support `--format` — they output plain lines, ready for y
 | `--words <n>` | — | `seed_lorem` |
 | `--sentences <n>` | — | `seed_lorem` |
 | `--items <n>` | 3 (max 10) | `seed_cart` |
+| `--seed <n>` | — | all generators (reproducible output) |
+| `--prefix <str>` | `sk_` | `seed_api_key` |
 
 ---
 
@@ -213,16 +218,19 @@ seed/
 ├── seed.sh              ← entrypoint (library + CLI)
 ├── src/
 │   ├── scalar.sh        ← name, email, uuid, date, number, lorem, ip, url, bool
-│   ├── record.sh        ← user, address, company + format helpers
+│   ├── record.sh        ← user, address, company, db_credentials + format helpers
 │   ├── ecommerce.sh     ← product, category, order, order_item, coupon, cart
 │   ├── crm.sh           ← contact, lead, deal, activity, note, tag
+│   ├── geo.sh           ← coordinates, country
+│   ├── finance.sh       ← credit_card
+│   ├── devops.sh        ← log_entry, error_log, api_key
 │   └── tui.sh           ← filenames, dirtree, menu_items
 ├── data/                ← names, domains, cities, nouns, adjectives, lorem…
 ├── mcp/
 │   ├── server.py        ← FastMCP adapter (one tool per generator)
 │   └── requirements.txt
 └── tests/
-    ├── unit/            ← per-module bash tests (146 assertions)
+    ├── unit/            ← per-module bash tests (231 assertions)
     ├── integration/     ← end-to-end CLI tests
     └── mcp/             ← Python unit tests for the MCP adapter
 ```
