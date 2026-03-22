@@ -90,7 +90,7 @@ Record generator. Card number is Luhn-valid, generated algorithmically — no da
 
 **Output (JSON default):**
 ```json
-{"type": "Visa", "number": "4532015112830366", "expiry": "09/28", "cvv": "472"}
+{"type":"Visa","number":4532015112830366,"expiry":"09/28","cvv":472}
 ```
 
 **Types, prefixes, and lengths:**
@@ -307,7 +307,8 @@ Three new test files:
 - Expiry matches `^[0-9]{2}/[0-9]{2}$`
 - CVV: 3 digits for Visa/MC/Discover; Amex CVV is 4 digits (generate Amex-only records with `--seed` values known to produce Amex, or generate 20 cards and find an Amex)
 - `seed_credit_card --seed 42 --count 3`: 3 distinct records
-- `seed_credit_card --format csv` and `--format sql`: verify number field is unquoted (numeric)
+- `seed_credit_card --format sql`: verify number and cvv fields are unquoted (numeric) — `_seed_fmt_sql` uses `_seed_is_numeric` to skip quoting
+- `seed_credit_card --format csv`: number field is present; CSV format always quotes all values so no unquoted assertion here
 
 ### `tests/unit/test-devops.sh`
 
