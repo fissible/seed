@@ -1,0 +1,29 @@
+connection timeout after 30000ms
+null pointer dereference in request handler
+permission denied: insufficient privileges
+disk quota exceeded
+failed to acquire lock after 10 retries
+index out of bounds: array length 5, index 7
+unexpected end of input while parsing JSON
+database connection refused on port 5432
+memory allocation failed: out of heap space
+authentication token expired
+invalid checksum: expected 0xdeadbeef, got 0xbeefdead
+maximum retry limit reached
+socket closed unexpectedly by remote host
+schema validation failed: missing required field
+deadlock detected, transaction rolled back
+rate limit exceeded: 429 too many requests
+service unavailable: upstream dependency not responding
+certificate verification failed
+invalid UTF-8 sequence at byte offset 42
+stack overflow in recursive function call
+transaction aborted due to serialization failure
+file not found: /var/data/config.json
+network unreachable: no route to host
+operation timed out after 5000ms
+invalid argument: expected positive integer, got -1
+resource leak detected in memory pool
+failed to bind socket to port 8080
+encryption key not found in keystore
+circular dependency detected in module graph

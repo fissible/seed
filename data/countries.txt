@@ -1,0 +1,70 @@
+US|United States|Americas
+DE|Germany|Europe
+JP|Japan|Asia
+BR|Brazil|Americas
+NG|Nigeria|Africa
+AU|Australia|Oceania
+ZA|South Africa|Africa
+IN|India|Asia
+CN|China|Asia
+FR|France|Europe
+GB|United Kingdom|Europe
+MX|Mexico|Americas
+IT|Italy|Europe
+ES|Spain|Europe
+KR|South Korea|Asia
+CA|Canada|Americas
+AR|Argentina|Americas
+EG|Egypt|Africa
+SA|Saudi Arabia|Middle East
+TR|Turkey|Middle East
+PL|Poland|Europe
+NL|Netherlands|Europe
+SE|Sweden|Europe
+NO|Norway|Europe
+DK|Denmark|Europe
+FI|Finland|Europe
+CH|Switzerland|Europe
+BE|Belgium|Europe
+AT|Austria|Europe
+PT|Portugal|Europe
+GR|Greece|Europe
+CZ|Czech Republic|Europe
+HU|Hungary|Europe
+RO|Romania|Europe
+PH|Philippines|Asia
+TH|Thailand|Asia
+VN|Vietnam|Asia
+MY|Malaysia|Asia
+ID|Indonesia|Asia
+PK|Pakistan|Asia
+BD|Bangladesh|Asia
+LK|Sri Lanka|Asia
+NZ|New Zealand|Oceania
+PG|Papua New Guinea|Oceania
+CO|Colombia|Americas
+VE|Venezuela|Americas
+PE|Peru|Americas
+CL|Chile|Americas
+EC|Ecuador|Americas
+BO|Bolivia|Americas
+PY|Paraguay|Americas
+GH|Ghana|Africa
+KE|Kenya|Africa
+TZ|Tanzania|Africa
+ET|Ethiopia|Africa
+CI|Ivory Coast|Africa
+CM|Cameroon|Africa
+MA|Morocco|Africa
+TN|Tunisia|Africa
+DZ|Algeria|Africa
+IL|Israel|Middle East
+AE|UAE|Middle East
+IQ|Iraq|Middle East
+IR|Iran|Middle East
+RU|Russia|Europe
+UA|Ukraine|Europe
+KZ|Kazakhstan|Asia
+VK|Vatican City|Europe
+LU|Luxembourg|Europe
+LT|Lithuania|Europe
