@@ -54,3 +54,185 @@ seed_new() {
             return 1 ;;
     esac
 }
+
+# ---------------------------------------------------------------------------
+# _seed_new_custom_schema
+# Interactive wizard: collects table name + fields, writes a .seed file.
+# Requires an interactive terminal (exits 1 if stdin is not a TTY).
+# ---------------------------------------------------------------------------
+_seed_new_custom_schema() {
+    if [[ ! -t 0 ]]; then
+        printf 'seed new: requires an interactive terminal\n' >&2
+        return 1
+    fi
+
+    # bash 3.2: `return` inside a trap does NOT return from the enclosing function —
+    # it only returns from the trap handler and the function continues. Use `exit 1`
+    # instead. This is safe because seed.sh is always invoked as a subprocess
+    # (`bash seed.sh new custom-schema`), never sourced by the user's interactive shell.
+    trap 'printf "\nAborted.\n" >&2; exit 1' INT
+
+    # Generator list — 1-indexed; element 0 is unused
+    local _GENS=('' first_name last_name name email phone uuid date number bool lorem ip url)
+
+    # ── Collect table name ───────────────────────────────────────────────────
+    local table=""
+    while [[ -z "$table" ]]; do
+        printf 'Table name: '
+        read -r table
+    done
+
+    # ── Print generator menu ─────────────────────────────────────────────────
+    printf '\nGenerators:\n'
+    printf '  1) first_name    2) last_name     3) name\n'
+    printf '  4) email         5) phone         6) uuid\n'
+    printf '  7) date          8) number        9) bool\n'
+    printf ' 10) lorem        11) ip           12) url\n'
+    printf '\n'
+
+    # ── Collect fields ────────────────────────────────────────────────────────
+    local cols=()
+    local gen_specs=()
+    local done_adding=0
+
+    while [[ $done_adding -eq 0 ]]; do
+        # Inner field-collection loop
+        while true; do
+            printf 'Column name: '
+            local col=""
+            read -r col
+            [[ -z "$col" ]] && break        # shortcut exit: empty col name
+
+            # Generator selection
+            local gen_num="" gen_name=""
+            while true; do
+                printf 'Select generator [1-12, Enter to finish]: '
+                read -r gen_num
+                # Use case for bash 3.2 safety (=~ with groups is fragile in 3.2)
+                case "$gen_num" in
+                    '')          col=""; break ;;   # shortcut exit
+                    [1-9]|10|11|12)
+                                 gen_name="${_GENS[$gen_num]}"; break ;;
+                    *)           printf 'Invalid selection. Enter a number 1-12 or press Enter to finish.\n' >&2 ;;
+                esac
+            done
+            [[ -z "$col" ]] && break        # shortcut exit from empty gen selection
+
+            # Per-field flags
+            local gen_spec="$gen_name"
+            case "$gen_name" in
+                number)
+                    local fmin="" fmax=""
+                    printf '  Min value [1]: ';     read -r fmin
+                    printf '  Max value [100]: ';   read -r fmax
+                    # Omit flag when blank OR when user typed the default value
+                    # (spec: "flag written only when value differs from default")
+                    [[ -n "$fmin" && "$fmin" != "1" ]]   && gen_spec="${gen_spec} --min ${fmin}"
+                    [[ -n "$fmax" && "$fmax" != "100" ]] && gen_spec="${gen_spec} --max ${fmax}"
+                    ;;
+                date)
+                    local ffrom="" fto=""
+                    printf '  From date [2000-01-01]: '; read -r ffrom
+                    printf '  To date [today]: ';        read -r fto
+                    # From: omit if blank or user typed the default "2000-01-01"
+                    # To: omit if blank (blank means "today", the implicit default)
+                    [[ -n "$ffrom" && "$ffrom" != "2000-01-01" ]] && gen_spec="${gen_spec} --from ${ffrom}"
+                    [[ -n "$fto" ]]                                && gen_spec="${gen_spec} --to ${fto}"
+                    ;;
+                lorem)
+                    local fwords="" fsentences=""
+                    printf '  Words [none]: '; read -r fwords
+                    if [[ -z "$fwords" ]]; then
+                        printf '  Sentences [none]: '; read -r fsentences
+                    fi
+                    [[ -n "$fwords" ]]     && gen_spec="${gen_spec} --words ${fwords}"
+                    [[ -n "$fsentences" ]] && gen_spec="${gen_spec} --sentences ${fsentences}"
+                    ;;
+            esac
+
+            cols[${#cols[@]}]="$col"
+            gen_specs[${#gen_specs[@]}]="$gen_spec"
+
+            # Show running summary
+            printf '\nFields so far:\n'
+            local k=0
+            while [[ $k -lt ${#cols[@]} ]]; do
+                printf '  %-14s %s\n' "${cols[$k]}" "${gen_specs[$k]}"
+                k=$((k+1))
+            done
+            printf '\n'
+
+            # Continue prompt
+            printf 'Add another field? [Y/n]: '
+            local again=""
+            read -r again
+            case "$again" in
+                [Nn]) break ;;
+            esac
+        done
+
+        # Guard: at least one field required
+        if [[ ${#cols[@]} -eq 0 ]]; then
+            printf 'No fields defined. Add at least one field.\n' >&2
+        else
+            done_adding=1
+        fi
+    done
+
+    # ── Build schema content ──────────────────────────────────────────────────
+    local args=()
+    local j=0
+    while [[ $j -lt ${#cols[@]} ]]; do
+        args[${#args[@]}]="${cols[$j]}"
+        args[${#args[@]}]="${gen_specs[$j]}"
+        j=$((j+1))
+    done
+    local content
+    content=$(_seed_new_build_schema "$table" "${args[@]}")
+
+    # ── Resolve output path ───────────────────────────────────────────────────
+    local outpath=""
+    if [[ -d "tests/fixtures" ]]; then
+        # Branch 1: auto-write, no prompt
+        outpath="tests/fixtures/${table}.seed"
+    elif [[ -d "tests" ]]; then
+        # Branch 2: tests/ exists, fixtures/ does not — prompt with default shown.
+        # Blank input → use default. No re-prompt needed: the default is always
+        # non-empty, so outpath is guaranteed non-empty after this block.
+        local _default_path="tests/fixtures/${table}.seed"
+        printf 'Save to [%s]: ' "$_default_path"
+        local ans=""
+        read -r ans
+        outpath="${ans:-$_default_path}"
+    else
+        # Branch 3: no tests/ at all — prompt with no default, re-prompt if blank
+        while [[ -z "$outpath" ]]; do
+            printf 'Save to: '
+            read -r outpath
+        done
+    fi
+
+    # ── Handle existing file ──────────────────────────────────────────────────
+    while [[ -f "$outpath" ]]; do
+        printf '%s already exists. Overwrite? [y/N]: ' "$outpath"
+        local overwrite=""
+        read -r overwrite
+        case "$overwrite" in
+            [Yy]) break ;;
+            *)
+                printf 'Save to [%s]: ' "$outpath"
+                local newpath=""
+                read -r newpath
+                outpath="${newpath:-$outpath}"
+                ;;
+        esac
+    done
+
+    # ── Write file ────────────────────────────────────────────────────────────
+    mkdir -p "$(dirname "$outpath")"
+    printf '%s\n' "$content" > "$outpath"
+    printf 'Save to: %s\n' "$outpath"
+    printf 'Written.\n'
+
+    trap - INT
+}
