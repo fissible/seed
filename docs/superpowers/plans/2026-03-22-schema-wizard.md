@@ -548,10 +548,11 @@ Expected: 0 suites failed.
 
 - [ ] **Step 3: Create `tests/fixtures/` so the wizard takes branch 1 (auto-write)**
 
-The wizard checks for `tests/fixtures/` at runtime. If it doesn't exist, branch 2 triggers an interactive prompt, breaking the smoke test flow. Create it now:
+The wizard checks for `tests/fixtures/` at runtime. If it doesn't exist, branch 2 triggers an interactive prompt, breaking the smoke test flow. Create it and a `.gitkeep` so the directory is tracked by git:
 
 ```bash
 mkdir -p tests/fixtures
+touch tests/fixtures/.gitkeep
 ```
 
 - [ ] **Step 4: Smoke test the wizard manually**
@@ -584,10 +585,12 @@ rm tests/fixtures/smoke_test.seed
 After Step 3, `tests/fixtures/` exists — branch 1 always fires from the repo root. To verify branches 2 and 3, test from a temp directory:
 
 ```bash
+# Note: SEED_HOME is the repo root (e.g. /Users/you/seed)
+
 # Branch 2: tests/ exists, tests/fixtures/ does not
 mkdir -p /tmp/seedtest/tests
 cd /tmp/seedtest
-bash /path/to/seed.sh new custom-schema
+bash "$SEED_HOME/seed.sh" new custom-schema
 # Expected: prompts "Save to [tests/fixtures/<table>.seed]:" — Enter uses default, explicit path overrides
 cd -
 rm -rf /tmp/seedtest
@@ -595,7 +598,7 @@ rm -rf /tmp/seedtest
 # Branch 3: neither tests/ nor tests/fixtures/ exists
 mkdir /tmp/seedtest3
 cd /tmp/seedtest3
-bash /path/to/seed.sh new custom-schema
+bash "$SEED_HOME/seed.sh" new custom-schema
 # Expected: prompts "Save to:" with no default — blank re-prompts
 cd -
 rm -rf /tmp/seedtest3
