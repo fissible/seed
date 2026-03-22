@@ -146,7 +146,7 @@ _seed_new_infer_sql_type() {
 ```bash
 bash tests/unit/test-new.sh
 ```
-Expected: 12 passed, 0 failed.
+Expected: 13 passed, 0 failed.
 
 - [ ] **Step 5: Commit**
 
