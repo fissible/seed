@@ -81,7 +81,7 @@ assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
 # --format sql: number is unquoted (numeric)
 out_sql=$(seed_credit_card --format sql)
 # number appears without surrounding quotes in SQL VALUES
-[[ "$out_sql" =~ [[:space:]][0-9]{13,16}[,\)] ]]
+[[ "$out_sql" =~ [[:space:]][0-9]{15,16}[,\)] ]]
 assert_exit_code $? 0 "seed_credit_card --format sql: number unquoted"
 
 # --format csv: number field is present (always quoted in CSV)
