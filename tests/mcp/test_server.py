@@ -83,6 +83,39 @@ class TestRun(unittest.TestCase):
         self.assertIn('5', captured['args'])
         self.assertNotIn('--sentences', captured['args'])
 
+    def test_new_tools_registered(self):
+        """All 7 new tools are registered as callable attributes."""
+        for name in ('seed_coordinates', 'seed_country', 'seed_credit_card',
+                     'seed_log_entry', 'seed_error_log', 'seed_api_key',
+                     'seed_db_credentials'):
+            self.assertTrue(hasattr(self.server, name), f"{name} not found")
+            self.assertTrue(callable(getattr(self.server, name)), f"{name} not callable")
+
+    def test_seed_api_key_passes_prefix(self):
+        """seed_api_key maps prefix param to --prefix flag."""
+        captured = {}
+        def fake_run(args, **kwargs):
+            captured['args'] = args
+            m = MagicMock()
+            m.stdout = 'pk_abc123'
+            return m
+        with patch('subprocess.run', fake_run):
+            self.server.seed_api_key(prefix='pk_')
+        self.assertIn('--prefix', captured['args'])
+        self.assertIn('pk_', captured['args'])
+
+    def test_seed_api_key_omits_prefix_when_none(self):
+        """seed_api_key omits --prefix when not provided."""
+        captured = {}
+        def fake_run(args, **kwargs):
+            captured['args'] = args
+            m = MagicMock()
+            m.stdout = 'sk_abc123'
+            return m
+        with patch('subprocess.run', fake_run):
+            self.server.seed_api_key()
+        self.assertNotIn('--prefix', captured['args'])
+
 
 if __name__ == '__main__':
     unittest.main()
