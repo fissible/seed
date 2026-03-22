@@ -7,12 +7,26 @@ seed_contact() {
     titles=("Engineer" "Manager" "Director" "VP" "President" "Analyst" "Developer" "Designer" "Consultant")
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local name email phone company title
-        name=$(seed_name)
-        email=$(seed_email)
-        phone=$(seed_phone)
-        company=$(_seed_random_line companies)
-        title="${titles[$(_seed_random_int 0 $((${#titles[@]} - 1)))]}"
+        # Coherent name + email
+        local first_n last_n name fl ll domain email
+        _seed_random_line_v first_names; first_n="$_SEED_RESULT"
+        _seed_random_line_v last_names;  last_n="$_SEED_RESULT"
+        name="$first_n $last_n"
+        _seed_str_slug_v "$first_n"; fl="$_SEED_RESULT"
+        _seed_str_slug_v "$last_n";  ll="$_SEED_RESULT"
+        _seed_random_line_v domains; domain="$_SEED_RESULT"
+        email="${fl}.${ll}@${domain}"
+        # Inline phone
+        local a b c d phone
+        _seed_random_int_v 2 9;       a="$_SEED_RESULT"
+        _seed_random_int_v 10 99;     b="$_SEED_RESULT"
+        _seed_random_int_v 100 999;   c="$_SEED_RESULT"
+        _seed_random_int_v 1000 9999; d="$_SEED_RESULT"
+        phone=$(printf '%d%02d-%03d-%04d' "$a" "$b" "$c" "$d")
+        local company
+        _seed_random_line_v companies; company="$_SEED_RESULT"
+        _seed_random_int_v 0 $(( ${#titles[@]} - 1 ))
+        local title="${titles[$_SEED_RESULT]}"
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" contacts \
             name "$name" email "$email" phone "$phone" company "$company" title "$title")
@@ -35,15 +49,32 @@ seed_lead() {
     statuses=("new" "contacted" "qualified" "unqualified")
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local name email phone company title source status score
-        name=$(seed_name)
-        email=$(seed_email)
-        phone=$(seed_phone)
-        company=$(_seed_random_line companies)
-        title="${titles[$(_seed_random_int 0 $((${#titles[@]} - 1)))]}"
-        source="${sources[$(_seed_random_int 0 $((${#sources[@]} - 1)))]}"
-        status="${statuses[$(_seed_random_int 0 $((${#statuses[@]} - 1)))]}"
-        score=$(_seed_random_int 1 100)
+        # Coherent name + email
+        local first_n last_n name fl ll domain email
+        _seed_random_line_v first_names; first_n="$_SEED_RESULT"
+        _seed_random_line_v last_names;  last_n="$_SEED_RESULT"
+        name="$first_n $last_n"
+        _seed_str_slug_v "$first_n"; fl="$_SEED_RESULT"
+        _seed_str_slug_v "$last_n";  ll="$_SEED_RESULT"
+        _seed_random_line_v domains; domain="$_SEED_RESULT"
+        email="${fl}.${ll}@${domain}"
+        # Inline phone
+        local a b c d phone
+        _seed_random_int_v 2 9;       a="$_SEED_RESULT"
+        _seed_random_int_v 10 99;     b="$_SEED_RESULT"
+        _seed_random_int_v 100 999;   c="$_SEED_RESULT"
+        _seed_random_int_v 1000 9999; d="$_SEED_RESULT"
+        phone=$(printf '%d%02d-%03d-%04d' "$a" "$b" "$c" "$d")
+        local company
+        _seed_random_line_v companies; company="$_SEED_RESULT"
+        _seed_random_int_v 0 $(( ${#titles[@]} - 1 ))
+        local title="${titles[$_SEED_RESULT]}"
+        _seed_random_int_v 0 $(( ${#sources[@]} - 1 ))
+        local source="${sources[$_SEED_RESULT]}"
+        _seed_random_int_v 0 $(( ${#statuses[@]} - 1 ))
+        local status="${statuses[$_SEED_RESULT]}"
+        _seed_random_int_v 1 100
+        local score="$_SEED_RESULT"
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" leads \
             name "$name" email "$email" phone "$phone" company "$company" title "$title" \

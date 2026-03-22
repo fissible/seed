@@ -38,4 +38,32 @@ assert_exit_code $? 0 "tag color hex format"
 # --count 3
 assert_eq "3" "$(seed_contact --count 3 --format sql | wc -l | tr -d ' ')" "contact count sql"
 
+ptyunit_test_begin "crm coherence and distinctness"
+
+# seed_contact coherence
+out=$(bash "$SEED_HOME/seed.sh" contact --seed 42)
+name_val=$(printf '%s' "$out" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+email_val=$(printf '%s' "$out" | grep -o '"email":"[^"]*"' | cut -d'"' -f4)
+email_prefix="${email_val%@*}"
+first=$(printf '%s' "$name_val" | cut -d' ' -f1 | tr '[:upper:]' '[:lower:]')
+last=$(printf '%s' "$name_val" | cut -d' ' -f2 | tr '[:upper:]' '[:lower:]')
+assert_eq "${first}.${last}" "$email_prefix" "seed_contact email coherent with name"
+
+out=$(bash "$SEED_HOME/seed.sh" contact --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_contact --seed 42 --count 3: 3 distinct"
+
+# seed_lead coherence
+out=$(bash "$SEED_HOME/seed.sh" lead --seed 42)
+name_val=$(printf '%s' "$out" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+email_val=$(printf '%s' "$out" | grep -o '"email":"[^"]*"' | cut -d'"' -f4)
+email_prefix="${email_val%@*}"
+first=$(printf '%s' "$name_val" | cut -d' ' -f1 | tr '[:upper:]' '[:lower:]')
+last=$(printf '%s' "$name_val" | cut -d' ' -f2 | tr '[:upper:]' '[:lower:]')
+assert_eq "${first}.${last}" "$email_prefix" "seed_lead email coherent with name"
+
+out=$(bash "$SEED_HOME/seed.sh" lead --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_lead --seed 42 --count 3: 3 distinct"
+
 ptyunit_test_summary
