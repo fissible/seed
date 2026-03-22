@@ -73,10 +73,24 @@ _seed_new_custom_schema() {
     trap 'printf "\nAborted.\n" >&2; exit 1' INT
 
     # Generator list — 1-indexed; element 0 is unused
-    local _GENS=('' first_name last_name name email phone uuid date number bool lorem ip url)
+    local _GENS
+    _GENS=('' first_name last_name name email phone uuid date number bool lorem ip url)
+
+    # Hoist all locals to the top of the function (bash 3.2 safety)
+    local table=""
+    local col="" gen_num="" gen_name="" gen_spec=""
+    local fmin="" fmax="" ffrom="" fto="" fwords="" fsentences=""
+    local again="" k=0 j=0 done_adding=0
+    local outpath="" ans="" _default_path="" newpath="" overwrite=""
+    local content
+    local cols
+    local gen_specs
+    local args
+    cols=()
+    gen_specs=()
+    args=()
 
     # ── Collect table name ───────────────────────────────────────────────────
-    local table=""
     while [[ -z "$table" ]]; do
         printf 'Table name: '
         read -r table
@@ -91,38 +105,34 @@ _seed_new_custom_schema() {
     printf '\n'
 
     # ── Collect fields ────────────────────────────────────────────────────────
-    local cols=()
-    local gen_specs=()
-    local done_adding=0
-
     while [[ $done_adding -eq 0 ]]; do
         # Inner field-collection loop
         while true; do
             printf 'Column name: '
-            local col=""
+            col=""
             read -r col
             [[ -z "$col" ]] && break        # shortcut exit: empty col name
 
             # Generator selection
-            local gen_num="" gen_name=""
+            gen_num=""; gen_name=""
             while true; do
                 printf 'Select generator [1-12, Enter to finish]: '
                 read -r gen_num
                 # Use case for bash 3.2 safety (=~ with groups is fragile in 3.2)
                 case "$gen_num" in
-                    '')          col=""; break ;;   # shortcut exit
+                    '')          col=""; break ;;   # sentinel: empty gen → abort this field, same path as empty col name
                     [1-9]|10|11|12)
                                  gen_name="${_GENS[$gen_num]}"; break ;;
                     *)           printf 'Invalid selection. Enter a number 1-12 or press Enter to finish.\n' >&2 ;;
                 esac
             done
-            [[ -z "$col" ]] && break        # shortcut exit from empty gen selection
+            [[ -z "$col" ]] && break   # abort current field (empty col name OR empty gen selection)
 
             # Per-field flags
-            local gen_spec="$gen_name"
+            gen_spec="$gen_name"
             case "$gen_name" in
                 number)
-                    local fmin="" fmax=""
+                    fmin=""; fmax=""
                     printf '  Min value [1]: ';     read -r fmin
                     printf '  Max value [100]: ';   read -r fmax
                     # Omit flag when blank OR when user typed the default value
@@ -131,7 +141,7 @@ _seed_new_custom_schema() {
                     [[ -n "$fmax" && "$fmax" != "100" ]] && gen_spec="${gen_spec} --max ${fmax}"
                     ;;
                 date)
-                    local ffrom="" fto=""
+                    ffrom=""; fto=""
                     printf '  From date [2000-01-01]: '; read -r ffrom
                     printf '  To date [today]: ';        read -r fto
                     # From: omit if blank or user typed the default "2000-01-01"
@@ -140,7 +150,7 @@ _seed_new_custom_schema() {
                     [[ -n "$fto" ]]                                && gen_spec="${gen_spec} --to ${fto}"
                     ;;
                 lorem)
-                    local fwords="" fsentences=""
+                    fwords=""; fsentences=""
                     printf '  Words [none]: '; read -r fwords
                     if [[ -z "$fwords" ]]; then
                         printf '  Sentences [none]: '; read -r fsentences
@@ -155,7 +165,7 @@ _seed_new_custom_schema() {
 
             # Show running summary
             printf '\nFields so far:\n'
-            local k=0
+            k=0
             while [[ $k -lt ${#cols[@]} ]]; do
                 printf '  %-14s %s\n' "${cols[$k]}" "${gen_specs[$k]}"
                 k=$((k+1))
@@ -164,7 +174,7 @@ _seed_new_custom_schema() {
 
             # Continue prompt
             printf 'Add another field? [Y/n]: '
-            local again=""
+            again=""
             read -r again
             case "$again" in
                 [Nn]) break ;;
@@ -180,18 +190,15 @@ _seed_new_custom_schema() {
     done
 
     # ── Build schema content ──────────────────────────────────────────────────
-    local args=()
-    local j=0
+    j=0
     while [[ $j -lt ${#cols[@]} ]]; do
         args[${#args[@]}]="${cols[$j]}"
         args[${#args[@]}]="${gen_specs[$j]}"
         j=$((j+1))
     done
-    local content
     content=$(_seed_new_build_schema "$table" "${args[@]}")
 
     # ── Resolve output path ───────────────────────────────────────────────────
-    local outpath=""
     if [[ -d "tests/fixtures" ]]; then
         # Branch 1: auto-write, no prompt
         outpath="tests/fixtures/${table}.seed"
@@ -199,9 +206,8 @@ _seed_new_custom_schema() {
         # Branch 2: tests/ exists, fixtures/ does not — prompt with default shown.
         # Blank input → use default. No re-prompt needed: the default is always
         # non-empty, so outpath is guaranteed non-empty after this block.
-        local _default_path="tests/fixtures/${table}.seed"
+        _default_path="tests/fixtures/${table}.seed"
         printf 'Save to [%s]: ' "$_default_path"
-        local ans=""
         read -r ans
         outpath="${ans:-$_default_path}"
     else
@@ -215,13 +221,13 @@ _seed_new_custom_schema() {
     # ── Handle existing file ──────────────────────────────────────────────────
     while [[ -f "$outpath" ]]; do
         printf '%s already exists. Overwrite? [y/N]: ' "$outpath"
-        local overwrite=""
+        overwrite=""
         read -r overwrite
         case "$overwrite" in
             [Yy]) break ;;
             *)
                 printf 'Save to [%s]: ' "$outpath"
-                local newpath=""
+                newpath=""
                 read -r newpath
                 outpath="${newpath:-$outpath}"
                 ;;
