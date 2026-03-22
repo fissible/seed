@@ -264,4 +264,14 @@ _seed_random_datetime_v 2025; dt3="$_SEED_RESULT"
 [[ "$dt1" != "$dt2" || "$dt2" != "$dt3" ]]
 assert_exit_code $? 0 "_seed_random_datetime_v produces varied output"
 
+ptyunit_test_begin "flag parsing: --prefix"
+
+# --prefix sets _SEED_FLAG_PREFIX
+_seed_parse_flags --prefix pk_live_
+assert_eq "pk_live_" "$_SEED_FLAG_PREFIX" "--prefix sets _SEED_FLAG_PREFIX"
+
+# --prefix is reset on next call (no bleed)
+_seed_parse_flags
+assert_eq "" "$_SEED_FLAG_PREFIX" "--prefix reset on next _seed_parse_flags call"
+
 ptyunit_test_summary

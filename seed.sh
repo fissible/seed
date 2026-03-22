@@ -16,7 +16,7 @@ source "$SEED_HOME/src/tui.sh"
 # Internal: flag parser
 # Populates globals: _SEED_FLAG_COUNT _SEED_FLAG_FORMAT _SEED_FLAG_MIN
 #   _SEED_FLAG_MAX _SEED_FLAG_FROM _SEED_FLAG_TO _SEED_FLAG_WORDS
-#   _SEED_FLAG_SENTENCES _SEED_FLAG_ITEMS _SEED_FLAG_LENGTH;
+#   _SEED_FLAG_SENTENCES _SEED_FLAG_ITEMS _SEED_FLAG_LENGTH _SEED_FLAG_PREFIX;
 #   conditionally sets _SEED_RNG_STATE
 # Returns exit code 2 on unknown/malformed flags.
 # ---------------------------------------------------------------------------
@@ -31,6 +31,7 @@ _seed_parse_flags() {
     _SEED_FLAG_SENTENCES=""
     _SEED_FLAG_ITEMS=""
     _SEED_FLAG_LENGTH=""
+    _SEED_FLAG_PREFIX=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -94,6 +95,12 @@ _seed_parse_flags() {
                     return 2
                 fi
                 _SEED_FLAG_LENGTH="$2"; shift 2 ;;
+            --prefix)
+                if [[ $# -lt 2 ]]; then
+                    printf 'Flag --prefix requires a value\n' >&2
+                    return 2
+                fi
+                _SEED_FLAG_PREFIX="$2"; shift 2 ;;
             --seed)
                 if [[ $# -lt 2 ]]; then
                     printf 'Flag --seed requires a value\n' >&2
