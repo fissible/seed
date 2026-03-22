@@ -98,13 +98,44 @@ seed_user() {
     _seed_parse_flags "$@" || return $?
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local name email phone dob username
-        name=$(seed_name)
-        email=$(seed_email)
-        phone=$(seed_phone)
-        dob=$(seed_date --from "$(_seed_date_subtract_years "$(_seed_today)" 80)" \
-                        --to   "$(_seed_date_subtract_years "$(_seed_today)" 18)")
-        username=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '.')
+        # Coherent name + email + username from same first/last names
+        local first_n last_n name fl ll domain email username
+        _seed_random_line_v first_names; first_n="$_SEED_RESULT"
+        _seed_random_line_v last_names;  last_n="$_SEED_RESULT"
+        name="$first_n $last_n"
+        _seed_str_slug_v "$first_n"; fl="$_SEED_RESULT"
+        _seed_str_slug_v "$last_n";  ll="$_SEED_RESULT"
+        _seed_random_line_v domains; domain="$_SEED_RESULT"
+        email="${fl}.${ll}@${domain}"
+        username="${fl}.${ll}"
+        # Inline phone (cannot call seed_phone — _seed_parse_flags would reset flags)
+        local a b c d phone
+        _seed_random_int_v 2 9;       a="$_SEED_RESULT"
+        _seed_random_int_v 10 99;     b="$_SEED_RESULT"
+        _seed_random_int_v 100 999;   c="$_SEED_RESULT"
+        _seed_random_int_v 1000 9999; d="$_SEED_RESULT"
+        phone=$(printf '%d%02d-%03d-%04d' "$a" "$b" "$c" "$d")
+        # Inline DOB date (18–80 years ago)
+        local today_val from_dob to_dob
+        today_val=$(_seed_today)
+        from_dob=$(_seed_date_subtract_years "$today_val" 80)
+        to_dob=$(_seed_date_subtract_years "$today_val" 18)
+        local dy dm dd dmax dob
+        _seed_random_int_v "${from_dob:0:4}" "${to_dob:0:4}"; dy="$_SEED_RESULT"
+        _seed_random_int_v 1 12; dm="$_SEED_RESULT"
+        case "$dm" in
+            1|3|5|7|8|10|12) dmax=31 ;;
+            4|6|9|11)         dmax=30 ;;
+            2)
+                if (( dy % 400 == 0 || (dy % 4 == 0 && dy % 100 != 0) )); then
+                    dmax=29
+                else
+                    dmax=28
+                fi
+                ;;
+        esac
+        _seed_random_int_v 1 "$dmax"; dd="$_SEED_RESULT"
+        dob=$(printf '%04d-%02d-%02d' "$dy" "$dm" "$dd")
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" users \
             name "$name" email "$email" phone "$phone" dob "$dob" username "$username")

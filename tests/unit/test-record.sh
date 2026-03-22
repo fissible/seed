@@ -88,4 +88,20 @@ assert_contains "$out" '"domain"' "seed_company has domain"
 assert_contains "$out" '"street"' "seed_company has street (flat)"
 assert_contains "$out" '"country":"US"' "seed_company country is US"
 
+ptyunit_test_begin "seed_user coherence and distinctness"
+
+# Coherence: email prefix must match name's first.last (regression guard)
+out=$(bash "$SEED_HOME/seed.sh" user --seed 42)
+name_val=$(printf '%s' "$out" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+email_val=$(printf '%s' "$out" | grep -o '"email":"[^"]*"' | cut -d'"' -f4)
+email_prefix="${email_val%@*}"
+first=$(printf '%s' "$name_val" | cut -d' ' -f1 | tr '[:upper:]' '[:lower:]')
+last=$(printf '%s' "$name_val" | cut -d' ' -f2 | tr '[:upper:]' '[:lower:]')
+assert_eq "${first}.${last}" "$email_prefix" "seed_user email coherent with name"
+
+# Distinctness: --seed 42 --count 3 must produce 3 distinct records (FAILS before fix)
+out=$(bash "$SEED_HOME/seed.sh" user --seed 42 --count 3)
+assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "seed_user --seed 42 --count 3: 3 distinct records"
+
 ptyunit_test_summary
