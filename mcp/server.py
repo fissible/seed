@@ -228,5 +228,13 @@ def seed_menu_items(count: int = 10) -> str:
     return _run("menu_items", count=count)
 
 
+# --- Custom schema tool ---
+
+@mcp.tool()
+def seed_custom(schema: str, count: int = 1, format: str = "json") -> str:
+    """Generate records from a .seed schema file. schema = name (auto-discovers tests/fixtures/<name>.seed) or file path."""
+    return _run("custom", schema=schema, count=count, format=format)
+
+
 if __name__ == "__main__":
     mcp.run()
