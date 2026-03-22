@@ -40,3 +40,17 @@ _seed_new_build_schema() {
         printf '%s|%s|%s\n' "$col" "$sql_type" "$gen_spec"
     done
 }
+
+# ---------------------------------------------------------------------------
+# seed_new <subcommand> [args...]
+# Dispatcher for new-resource generators.
+# ---------------------------------------------------------------------------
+seed_new() {
+    local sub="${1:-}"; shift || true
+    case "$sub" in
+        custom-schema) _seed_new_custom_schema "$@" ;;
+        *)  printf 'Usage: seed.sh new <subcommand>\n' >&2
+            printf 'Available: custom-schema\n' >&2
+            return 1 ;;
+    esac
+}

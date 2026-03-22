@@ -51,4 +51,16 @@ out=$(_seed_new_build_schema posts body "lorem --sentences 2")
 assert_contains "$out" 'body|TEXT|lorem --sentences 2' \
     "_seed_new_build_schema: lorem --sentences"
 
+ptyunit_test_begin "seed_new dispatcher"
+
+# No args → exits 1, stderr contains "Usage"
+# Capture exit code BEFORE $? is clobbered by the next statement
+out=$(seed_new 2>&1); ec=$?
+assert_exit_code $ec 1 "seed_new: no args exits 1"
+assert_contains "$out" 'Usage' "seed_new: no args prints Usage"
+
+# Unknown subcommand → exits 1 (direct call: $? is reliable)
+seed_new totally-unknown 2>/dev/null
+assert_exit_code $? 1 "seed_new: unknown subcommand exits 1"
+
 ptyunit_test_summary
