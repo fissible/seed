@@ -191,4 +191,23 @@ bad=$(seed_date --count 200 --from 1900-01-01 --to 1900-12-31 \
     | awk -F'-' '$2=="02" && $3=="29"')
 assert_eq "" "$bad" "no Feb 29 in non-leap year (1900)"
 
+ptyunit_test_begin "seed --seed distinctness"
+
+# Generators with LCG-only randomness: --seed 42 --count 3 must yield 3 distinct lines.
+# These FAIL on current code (all 3 iterations get same starting state) and PASS after refactor.
+for gen in name email phone date lorem ip url; do
+    out=$(bash "$SEED_HOME/seed.sh" $gen --seed 42 --count 3)
+    assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+        "$gen --seed 42 --count 3: 3 distinct"
+done
+
+# bool: only 2 possible values — 10 outputs must include both.
+out=$(bash "$SEED_HOME/seed.sh" bool --seed 42 --count 10)
+assert_eq "2" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
+    "bool --seed 42 --count 10: both true and false"
+
+# Regression: seed_name and seed_email still work as standalone generators
+assert_not_empty "$(bash "$SEED_HOME/seed.sh" name)" "seed_name standalone post-refactor"
+assert_not_empty "$(bash "$SEED_HOME/seed.sh" email)" "seed_email standalone post-refactor"
+
 ptyunit_test_summary

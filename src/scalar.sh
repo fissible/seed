@@ -37,16 +37,13 @@ _seed_cache_data() {
 _seed_random_line() {
     local name="$1"
     _seed_cache_data "$name" || return 1
-
     local uname
     uname=$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
     local count_var="_SEED_DATA_${uname}_N"
     local count="${!count_var}"
     [[ $count -eq 0 ]] && return 1
-
-    local idx
-    idx=$(_seed_random_int 0 $((count - 1)))
-    local line_var="_SEED_DATA_${uname}_${idx}"
+    _seed_random_int_v 0 $((count - 1))
+    local line_var="_SEED_DATA_${uname}_${_SEED_RESULT}"
     printf '%s\n' "${!line_var}"
 }
 
@@ -90,6 +87,71 @@ _seed_random_float() {
     _SEED_RNG_STATE=$(( (1664525 * _SEED_RNG_STATE + 1013904223) % 4294967296 ))
     awk -v s="$_SEED_RNG_STATE" -v lo="$min" -v hi="$max" \
         'BEGIN { printf "%.2f", (s / 4294967296.0) * (hi - lo) + lo }'
+}
+
+# ---------------------------------------------------------------------------
+# _seed_random_int_v <min> <max>
+# Like _seed_random_int but writes to _SEED_RESULT; no stdout.
+# Advances _SEED_RNG_STATE in the caller's process.
+# ---------------------------------------------------------------------------
+_seed_random_int_v() {
+    local min="${1:-1}" max="${2:-100}"
+    _seed_rng_init
+    _SEED_RNG_STATE=$(( (1664525 * _SEED_RNG_STATE + 1013904223) % 4294967296 ))
+    _SEED_RESULT=$(( _SEED_RNG_STATE % (max - min + 1) + min ))
+}
+
+# ---------------------------------------------------------------------------
+# _seed_random_float_v <min> <max>
+# Like _seed_random_float but writes to _SEED_RESULT; no stdout.
+# ---------------------------------------------------------------------------
+_seed_random_float_v() {
+    local min="${1:-1.00}" max="${2:-999.99}"
+    _seed_rng_init
+    _SEED_RNG_STATE=$(( (1664525 * _SEED_RNG_STATE + 1013904223) % 4294967296 ))
+    _SEED_RESULT=$(awk -v s="$_SEED_RNG_STATE" -v lo="$min" -v hi="$max" \
+        'BEGIN { printf "%.2f", (s / 4294967296.0) * (hi - lo) + lo }')
+}
+
+# ---------------------------------------------------------------------------
+# _seed_random_line_v <name>
+# Like _seed_random_line but writes to _SEED_RESULT; no stdout.
+# ---------------------------------------------------------------------------
+_seed_random_line_v() {
+    local name="$1"
+    _seed_cache_data "$name" || { _SEED_RESULT=""; return 1; }
+    local uname
+    uname=$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    local count_var="_SEED_DATA_${uname}_N"
+    local count="${!count_var}"
+    if [[ $count -eq 0 ]]; then _SEED_RESULT=""; return 1; fi
+    _seed_random_int_v 0 $((count - 1))
+    local idx="$_SEED_RESULT"
+    local line_var="_SEED_DATA_${uname}_${idx}"
+    _SEED_RESULT="${!line_var}"
+}
+
+# ---------------------------------------------------------------------------
+# _seed_random_state_v
+# Writes a random 2-letter US state abbreviation to _SEED_RESULT; no stdout.
+# ---------------------------------------------------------------------------
+_seed_random_state_v() {
+    local -a states=()
+    local s
+    for s in $_SEED_US_STATES; do
+        states[${#states[@]}]="$s"
+    done
+    _seed_random_int_v 0 $(( ${#states[@]} - 1 ))
+    _SEED_RESULT="${states[$_SEED_RESULT]}"
+}
+
+# ---------------------------------------------------------------------------
+# _seed_random_zip_v
+# Writes a random 5-digit zip code to _SEED_RESULT; no stdout.
+# ---------------------------------------------------------------------------
+_seed_random_zip_v() {
+    _seed_random_int_v 10000 99999
+    _SEED_RESULT=$(printf '%05d' "$_SEED_RESULT")
 }
 
 # ---------------------------------------------------------------------------
@@ -153,9 +215,8 @@ _seed_uuid_gen() {
 # ---------------------------------------------------------------------------
 _seed_random_elem() {
     local -a arr=("$@")
-    local idx
-    idx=$(_seed_random_int 0 $(( ${#arr[@]} - 1 )))
-    printf '%s\n' "${arr[$idx]}"
+    _seed_random_int_v 0 $(( ${#arr[@]} - 1 ))
+    printf '%s\n' "${arr[$_SEED_RESULT]}"
 }
 
 # ---------------------------------------------------------------------------
@@ -165,14 +226,8 @@ _seed_random_elem() {
 _SEED_US_STATES="AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY"
 
 _seed_random_state() {
-    local -a states=()
-    local s
-    for s in $_SEED_US_STATES; do
-        states[${#states[@]}]="$s"
-    done
-    local idx
-    idx=$(_seed_random_int 0 $(( ${#states[@]} - 1 )))
-    printf '%s\n' "${states[$idx]}"
+    _seed_random_state_v
+    printf '%s\n' "$_SEED_RESULT"
 }
 
 # ---------------------------------------------------------------------------
@@ -180,7 +235,8 @@ _seed_random_state() {
 # Return a random 5-digit US zip code, zero-padded.
 # ---------------------------------------------------------------------------
 _seed_random_zip() {
-    printf '%05d\n' "$(_seed_random_int 10000 99999)"
+    _seed_random_zip_v
+    printf '%s\n' "$_SEED_RESULT"
 }
 
 # ---------------------------------------------------------------------------
@@ -201,7 +257,10 @@ seed_name() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        printf '%s %s\n' "$(_seed_random_line first_names)" "$(_seed_random_line last_names)"
+        local fn ln
+        _seed_random_line_v first_names; fn="$_SEED_RESULT"
+        _seed_random_line_v last_names;  ln="$_SEED_RESULT"
+        printf '%s %s\n' "$fn" "$ln"
         i=$((i+1))
     done
 }
@@ -211,7 +270,8 @@ seed_first_name() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        _seed_random_line first_names
+        _seed_random_line_v first_names
+        printf '%s\n' "$_SEED_RESULT"
         i=$((i+1))
     done
 }
@@ -221,7 +281,8 @@ seed_last_name() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        _seed_random_line last_names
+        _seed_random_line_v last_names
+        printf '%s\n' "$_SEED_RESULT"
         i=$((i+1))
     done
 }
@@ -231,11 +292,13 @@ seed_email() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local first last domain
-        first=$(seed_first_name | tr '[:upper:]' '[:lower:]')
-        last=$(seed_last_name | tr '[:upper:]' '[:lower:]')
-        domain=$(_seed_random_line domains)
-        printf '%s.%s@%s\n' "$first" "$last" "$domain"
+        local fn ln fl ll domain
+        _seed_random_line_v first_names; fn="$_SEED_RESULT"
+        _seed_random_line_v last_names;  ln="$_SEED_RESULT"
+        _seed_random_line_v domains;     domain="$_SEED_RESULT"
+        _seed_str_lower_v "$fn"; fl="$_SEED_RESULT"
+        _seed_str_lower_v "$ln"; ll="$_SEED_RESULT"
+        printf '%s.%s@%s\n' "$fl" "$ll" "$domain"
         i=$((i+1))
     done
 }
@@ -245,11 +308,12 @@ seed_phone() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        printf '%d%02d-%03d-%04d\n' \
-            "$(_seed_random_int 2 9)" \
-            "$(_seed_random_int 10 99)" \
-            "$(_seed_random_int 100 999)" \
-            "$(_seed_random_int 1000 9999)"
+        local a b c d
+        _seed_random_int_v 2 9;       a="$_SEED_RESULT"
+        _seed_random_int_v 10 99;     b="$_SEED_RESULT"
+        _seed_random_int_v 100 999;   c="$_SEED_RESULT"
+        _seed_random_int_v 1000 9999; d="$_SEED_RESULT"
+        printf '%d%02d-%03d-%04d\n' "$a" "$b" "$c" "$d"
         i=$((i+1))
     done
 }
@@ -273,8 +337,8 @@ seed_date() {
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
         local year month day max_day
-        year=$(_seed_random_int "$from_year" "$to_year")
-        month=$(_seed_random_int 1 12)
+        _seed_random_int_v "$from_year" "$to_year"; year="$_SEED_RESULT"
+        _seed_random_int_v 1 12; month="$_SEED_RESULT"
         case "$month" in
             1|3|5|7|8|10|12) max_day=31 ;;
             4|6|9|11)         max_day=30 ;;
@@ -286,7 +350,7 @@ seed_date() {
                 fi
                 ;;
         esac
-        day=$(_seed_random_int 1 "$max_day")
+        _seed_random_int_v 1 "$max_day"; day="$_SEED_RESULT"
         printf '%04d-%02d-%02d\n' "$year" "$month" "$day"
         i=$((i+1))
     done
@@ -298,7 +362,8 @@ seed_number() {
     local min="${_SEED_FLAG_MIN:-1}" max="${_SEED_FLAG_MAX:-100}"
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        _seed_random_int "$min" "$max"
+        _seed_random_int_v "$min" "$max"
+        printf '%s\n' "$_SEED_RESULT"
         i=$((i+1))
     done
 }
@@ -315,17 +380,19 @@ seed_lorem() {
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
         if [[ -n "$_SEED_FLAG_WORDS" ]]; then
             local sentence
-            sentence=$(_seed_random_line lorem)
+            _seed_random_line_v lorem; sentence="$_SEED_RESULT"
             printf '%s\n' "$sentence" | tr ' ' '\n' | head -n "$_SEED_FLAG_WORDS" | tr '\n' ' ' | sed 's/ $//'
             printf '\n'
         elif [[ -n "$_SEED_FLAG_SENTENCES" ]]; then
             local s=0
             while [[ $s -lt $_SEED_FLAG_SENTENCES ]]; do
-                _seed_random_line lorem
+                _seed_random_line_v lorem
+                printf '%s\n' "$_SEED_RESULT"
                 s=$((s+1))
             done
         else
-            _seed_random_line lorem
+            _seed_random_line_v lorem
+            printf '%s\n' "$_SEED_RESULT"
         fi
         i=$((i+1))
     done
@@ -336,9 +403,12 @@ seed_ip() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        printf '%d.%d.%d.%d\n' \
-            "$(_seed_random_int 1 254)" "$(_seed_random_int 1 254)" \
-            "$(_seed_random_int 1 254)" "$(_seed_random_int 1 254)"
+        local o1 o2 o3 o4
+        _seed_random_int_v 1 254; o1="$_SEED_RESULT"
+        _seed_random_int_v 1 254; o2="$_SEED_RESULT"
+        _seed_random_int_v 1 254; o3="$_SEED_RESULT"
+        _seed_random_int_v 1 254; o4="$_SEED_RESULT"
+        printf '%d.%d.%d.%d\n' "$o1" "$o2" "$o3" "$o4"
         i=$((i+1))
     done
 }
@@ -348,7 +418,10 @@ seed_url() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        printf 'https://%s/%s\n' "$(_seed_random_line domains)" "$(_seed_random_line nouns)"
+        local dom noun
+        _seed_random_line_v domains; dom="$_SEED_RESULT"
+        _seed_random_line_v nouns;   noun="$_SEED_RESULT"
+        printf 'https://%s/%s\n' "$dom" "$noun"
         i=$((i+1))
     done
 }
@@ -358,7 +431,8 @@ seed_bool() {
     _seed_parse_flags "$@" || return $?
     local i=0
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        if [[ $(( RANDOM % 2 )) -eq 0 ]]; then printf 'true\n'; else printf 'false\n'; fi
+        _seed_random_int_v 0 1
+        if [[ "$_SEED_RESULT" -eq 0 ]]; then printf 'true\n'; else printf 'false\n'; fi
         i=$((i+1))
     done
 }
