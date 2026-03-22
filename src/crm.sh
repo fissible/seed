@@ -95,13 +95,33 @@ seed_deal() {
     local stages
     stages=("prospecting" "qualified" "proposal" "negotiation" "closed_won" "closed_lost")
     local i=0 first=1
+    local today_val to_year
+    today_val=$(_seed_today)
+    to_year="${today_val:0:4}"
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local title value stage close_date owner
-        title="$(_seed_random_line adjectives) $(_seed_random_line nouns) Deal"
-        value=$(_seed_random_float 1.00 999.99)
-        stage="${stages[$(_seed_random_int 0 $((${#stages[@]} - 1)))]}"
-        close_date=$(seed_date)
-        owner=$(seed_name)
+        local adj noun title value stage close_date owner
+        _seed_random_line_v adjectives; adj="$_SEED_RESULT"
+        _seed_random_line_v nouns;      noun="$_SEED_RESULT"
+        title="$adj $noun Deal"
+        _seed_random_float_v 1.00 999.99; value="$_SEED_RESULT"
+        _seed_random_int_v 0 $(( ${#stages[@]} - 1 ))
+        stage="${stages[$_SEED_RESULT]}"
+        # Inline close_date (default seed_date range: 2000–today)
+        local dy dm dd dmax
+        _seed_random_int_v 2000 "$to_year"; dy="$_SEED_RESULT"
+        _seed_random_int_v 1 12; dm="$_SEED_RESULT"
+        case "$dm" in
+            1|3|5|7|8|10|12) dmax=31 ;;
+            4|6|9|11)         dmax=30 ;;
+            2) if (( dy % 400 == 0 || (dy % 4 == 0 && dy % 100 != 0) )); then dmax=29; else dmax=28; fi ;;
+        esac
+        _seed_random_int_v 1 "$dmax"; dd="$_SEED_RESULT"
+        close_date=$(printf '%04d-%02d-%02d' "$dy" "$dm" "$dd")
+        # Inline owner name
+        local fn ln
+        _seed_random_line_v first_names; fn="$_SEED_RESULT"
+        _seed_random_line_v last_names;  ln="$_SEED_RESULT"
+        owner="$fn $ln"
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" deals \
             title "$title" value "$value" stage "$stage" close_date "$close_date" owner "$owner")
@@ -121,12 +141,34 @@ seed_activity() {
     local types
     types=("call" "email" "meeting")
     local i=0 first=1
+    local today_val to_year
+    today_val=$(_seed_today)
+    to_year="${today_val:0:4}"
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local type contact_email activity_date notes
-        type="${types[$(_seed_random_int 0 $((${#types[@]} - 1)))]}"
-        contact_email=$(seed_email)
-        activity_date=$(seed_date)
-        notes=$(seed_lorem)
+        _seed_random_int_v 0 $(( ${#types[@]} - 1 ))
+        local type="${types[$_SEED_RESULT]}"
+        # Inline email
+        local fn ln fl ll domain contact_email
+        _seed_random_line_v first_names; fn="$_SEED_RESULT"
+        _seed_random_line_v last_names;  ln="$_SEED_RESULT"
+        _seed_random_line_v domains;     domain="$_SEED_RESULT"
+        _seed_str_lower_v "$fn"; fl="$_SEED_RESULT"
+        _seed_str_lower_v "$ln"; ll="$_SEED_RESULT"
+        contact_email="${fl}.${ll}@${domain}"
+        # Inline activity_date
+        local dy dm dd dmax activity_date
+        _seed_random_int_v 2000 "$to_year"; dy="$_SEED_RESULT"
+        _seed_random_int_v 1 12; dm="$_SEED_RESULT"
+        case "$dm" in
+            1|3|5|7|8|10|12) dmax=31 ;;
+            4|6|9|11)         dmax=30 ;;
+            2) if (( dy % 400 == 0 || (dy % 4 == 0 && dy % 100 != 0) )); then dmax=29; else dmax=28; fi ;;
+        esac
+        _seed_random_int_v 1 "$dmax"; dd="$_SEED_RESULT"
+        activity_date=$(printf '%04d-%02d-%02d' "$dy" "$dm" "$dd")
+        # Inline lorem (notes)
+        local notes
+        _seed_random_line_v lorem; notes="$_SEED_RESULT"
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" activities \
             type "$type" contact_email "$contact_email" activity_date "$activity_date" notes "$notes")
@@ -146,13 +188,34 @@ seed_note() {
     local linked_types
     linked_types=("contact" "deal")
     local i=0 first=1
+    local today_val to_year
+    today_val=$(_seed_today)
+    to_year="${today_val:0:4}"
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
-        local body author created linked_type linked_id
-        body=$(seed_lorem)
-        author=$(seed_name)
-        created=$(seed_date)
-        linked_type="${linked_types[$(_seed_random_int 0 $((${#linked_types[@]} - 1)))]}"
-        linked_id=$(seed_uuid)
+        # Inline body (lorem)
+        local body
+        _seed_random_line_v lorem; body="$_SEED_RESULT"
+        # Inline author name
+        local fn ln author
+        _seed_random_line_v first_names; fn="$_SEED_RESULT"
+        _seed_random_line_v last_names;  ln="$_SEED_RESULT"
+        author="$fn $ln"
+        # Inline created date
+        local dy dm dd dmax created
+        _seed_random_int_v 2000 "$to_year"; dy="$_SEED_RESULT"
+        _seed_random_int_v 1 12; dm="$_SEED_RESULT"
+        case "$dm" in
+            1|3|5|7|8|10|12) dmax=31 ;;
+            4|6|9|11)         dmax=30 ;;
+            2) if (( dy % 400 == 0 || (dy % 4 == 0 && dy % 100 != 0) )); then dmax=29; else dmax=28; fi ;;
+        esac
+        _seed_random_int_v 1 "$dmax"; dd="$_SEED_RESULT"
+        created=$(printf '%04d-%02d-%02d' "$dy" "$dm" "$dd")
+        _seed_random_int_v 0 $(( ${#linked_types[@]} - 1 ))
+        local linked_type="${linked_types[$_SEED_RESULT]}"
+        # UUID for linked_id — /dev/urandom, not LCG; subshell is safe
+        local linked_id
+        linked_id=$(_seed_uuid_gen)
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" notes \
             body "$body" author "$author" created_at "$created" \
@@ -173,8 +236,9 @@ seed_tag() {
     local i=0 first=1
     while [[ $i -lt $_SEED_FLAG_COUNT ]]; do
         local name color
-        name=$(_seed_random_line adjectives)
-        color=$(printf '#%06x\n' "$(_seed_random_int 0 16777214)")
+        _seed_random_line_v adjectives; name="$_SEED_RESULT"
+        _seed_random_int_v 0 16777214
+        color=$(printf '#%06x' "$_SEED_RESULT")
         local rec
         rec=$(_seed_emit_record "$_SEED_FLAG_FORMAT" tags name "$name" color "$color")
         if [[ "$_SEED_FLAG_FORMAT" == "csv" ]]; then
