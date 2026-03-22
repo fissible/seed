@@ -11,6 +11,7 @@ source "$SEED_HOME/src/record.sh"
 source "$SEED_HOME/src/ecommerce.sh"
 source "$SEED_HOME/src/crm.sh"
 source "$SEED_HOME/src/tui.sh"
+source "$SEED_HOME/src/geo.sh"
 
 # ---------------------------------------------------------------------------
 # Internal: flag parser
