@@ -37,6 +37,9 @@ assert_exit_code $? 0 "seed_error_log error_code format"
 
 # JSON output contains stack_trace key
 assert_contains "$out" '"stack_trace"' "seed_error_log JSON has stack_trace"
+# JSON stack_trace value uses \\n (JSON-escaped backslash-n) as frame separator
+[[ "$out" == *'\\n'* ]]
+assert_exit_code $? 0 "seed_error_log JSON stack_trace uses JSON-escaped \\\\n separator"
 
 # CSV output does NOT contain stack_trace
 out_csv=$(seed_error_log --format csv)
@@ -51,6 +54,9 @@ assert_exit_code $? 0 "seed_error_log --format sql omits stack_trace"
 # KV output CONTAINS STACK_TRACE
 out_kv=$(seed_error_log --format kv)
 assert_contains "$out_kv" 'STACK_TRACE=' "seed_error_log --format kv has STACK_TRACE"
+# KV stack_trace value uses literal \n (backslash-n) as frame separator
+[[ "$out_kv" == *'\n'* ]]
+assert_exit_code $? 0 "seed_error_log KV stack_trace uses literal backslash-n separator"
 
 # --seed 42 --count 3: 3 distinct records
 out=$(bash "$SEED_HOME/seed.sh" error_log --seed 42 --count 3)
