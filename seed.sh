@@ -5,6 +5,7 @@
 
 SEED_HOME="${SEED_HOME:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 
+source "$SEED_HOME/src/str.sh"
 source "$SEED_HOME/src/scalar.sh"
 source "$SEED_HOME/src/record.sh"
 source "$SEED_HOME/src/ecommerce.sh"
