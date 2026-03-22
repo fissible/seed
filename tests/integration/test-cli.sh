@@ -36,6 +36,13 @@ assert_contains "$($SH deal)" '"stage"' "CLI deal json"
 assert_contains "$($SH activity)" '"type"' "CLI activity json"
 assert_contains "$($SH note)" '"linked_type"' "CLI note json"
 assert_contains "$($SH tag)" '"color"' "CLI tag json"
+assert_contains "$($SH db_credentials)" '"host"' "CLI db_credentials json"
+assert_contains "$($SH coordinates)" '"lat"' "CLI coordinates json"
+assert_contains "$($SH country)" '"code"' "CLI country json"
+assert_contains "$($SH credit_card)" '"number"' "CLI credit_card json"
+assert_contains "$($SH log_entry)" '"timestamp"' "CLI log_entry json"
+assert_contains "$($SH error_log)" '"stack_trace"' "CLI error_log json"
+assert_not_empty "$($SH api_key)" "CLI api_key"
 
 # --format sql
 out=$($SH user --format sql)
@@ -71,5 +78,8 @@ assert_eq "7" "$($SH menu_items --count 7 | wc -l | tr -d ' ')" "CLI menu_items 
 # --format on scalar → exit 2
 $SH name --format json 2>/dev/null
 assert_exit_code $? 2 "CLI name --format exits 2"
+
+$SH api_key --format json 2>/dev/null
+assert_exit_code $? 2 "CLI api_key --format exits 2"
 
 ptyunit_test_summary
