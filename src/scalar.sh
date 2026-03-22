@@ -248,6 +248,28 @@ _seed_is_numeric() {
 }
 
 # ---------------------------------------------------------------------------
+# _seed_random_datetime_v <to_year>
+# Takes to_year as $1. Caller must compute to_year=$(_seed_today | cut -c1-4)
+# once before the loop. Writes "YYYY-MM-DDThh:mm:ssZ" to _SEED_RESULT.
+# All LCG advances in the caller's process — no subshells.
+# ---------------------------------------------------------------------------
+_seed_random_datetime_v() {
+    local dy dm dd dmax dh dmin ds
+    _seed_random_int_v 2000 "$1"; dy="$_SEED_RESULT"   # $1 = to_year
+    _seed_random_int_v 1 12;      dm="$_SEED_RESULT"
+    case "$dm" in
+        1|3|5|7|8|10|12) dmax=31 ;;
+        4|6|9|11)         dmax=30 ;;
+        2) if (( dy % 400 == 0 || (dy % 4 == 0 && dy % 100 != 0) )); then dmax=29; else dmax=28; fi ;;
+    esac
+    _seed_random_int_v 1 "$dmax"; dd="$_SEED_RESULT"
+    _seed_random_int_v 0 23;      dh="$_SEED_RESULT"
+    _seed_random_int_v 0 59;      dmin="$_SEED_RESULT"
+    _seed_random_int_v 0 59;      ds="$_SEED_RESULT"
+    _SEED_RESULT=$(printf '%04d-%02d-%02dT%02d:%02d:%02dZ' "$dy" "$dm" "$dd" "$dh" "$dmin" "$ds")
+}
+
+# ---------------------------------------------------------------------------
 # Scalar generators
 # Each accepts --count N (default 1) and rejects --format.
 # ---------------------------------------------------------------------------

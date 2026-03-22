@@ -242,4 +242,26 @@ out=$(bash "$SEED_HOME/seed.sh" password --seed 42 --count 3)
 assert_eq "3" "$(printf '%s\n' "$out" | sort -u | wc -l | tr -d ' ')" \
     "seed_password --seed 42 --count 3: 3 distinct"
 
+ptyunit_test_begin "_seed_random_datetime_v"
+
+# Format check: must be YYYY-MM-DDThh:mm:ssZ
+_seed_rng_init
+_seed_random_datetime_v 2025
+[[ "$_SEED_RESULT" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
+assert_exit_code $? 0 "_seed_random_datetime_v format"
+
+# Year is in range [2000, to_year]
+_seed_random_datetime_v 2025
+year="${_SEED_RESULT:0:4}"
+[[ "$year" -ge 2000 && "$year" -le 2025 ]]
+assert_exit_code $? 0 "_seed_random_datetime_v year in range"
+
+# Variety: 5 calls must not all return identical results
+dt1=""; dt2=""; dt3=""
+_seed_random_datetime_v 2025; dt1="$_SEED_RESULT"
+_seed_random_datetime_v 2025; dt2="$_SEED_RESULT"
+_seed_random_datetime_v 2025; dt3="$_SEED_RESULT"
+[[ "$dt1" != "$dt2" || "$dt2" != "$dt3" ]]
+assert_exit_code $? 0 "_seed_random_datetime_v produces varied output"
+
 ptyunit_test_summary
