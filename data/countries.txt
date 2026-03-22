@@ -59,12 +59,12 @@ MA|Morocco|Africa
 TN|Tunisia|Africa
 DZ|Algeria|Africa
 IL|Israel|Middle East
-AE|UAE|Middle East
+AE|United Arab Emirates|Middle East
 IQ|Iraq|Middle East
 IR|Iran|Middle East
 RU|Russia|Europe
 UA|Ukraine|Europe
 KZ|Kazakhstan|Asia
-VK|Vatican City|Europe
+VA|Vatican City|Europe
 LU|Luxembourg|Europe
 LT|Lithuania|Europe
