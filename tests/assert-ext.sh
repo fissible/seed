@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/assert-ext.sh — extra assert helpers for seed tests
 # Source AFTER ptyunit/assert.sh:
-#   source "$PTYUNIT_HOME/assert.sh"
+#   source "$SEED_HOME/tests/vendor/ptyunit/assert.sh"
 #   source "$SEED_HOME/tests/assert-ext.sh"
 
 # Assert an exit code equals expected.
@@ -16,21 +16,9 @@ assert_exit_code() {
 assert_not_empty() {
     local value="$1" msg="${2:-value}"
     if [[ -n "$value" ]]; then
-        (( _PTYUNIT_TEST_PASS++ ))
+        (( _PTYUNIT_TEST_PASS++ )) || true
     else
-        (( _PTYUNIT_TEST_FAIL++ ))
+        (( _PTYUNIT_TEST_FAIL++ )) || true
         printf 'FAIL — %s: expected non-empty string\n' "$msg"
-    fi
-}
-
-# Assert a string contains a substring.
-# Usage: assert_contains <haystack> <needle> [message]
-assert_contains() {
-    local haystack="$1" needle="$2" msg="${3:-contains}"
-    if [[ "$haystack" == *"$needle"* ]]; then
-        (( _PTYUNIT_TEST_PASS++ ))
-    else
-        (( _PTYUNIT_TEST_FAIL++ ))
-        printf 'FAIL — %s: expected %q to contain %q\n' "$msg" "$haystack" "$needle"
     fi
 }

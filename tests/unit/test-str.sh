@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 SEED_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-source "${PTYUNIT_HOME:-$SEED_HOME/../ptyunit}/assert.sh"
+source "$SEED_HOME/tests/vendor/ptyunit/assert.sh"
 source "$SEED_HOME/tests/assert-ext.sh"
 source "$SEED_HOME/src/str.sh"
 
