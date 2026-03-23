@@ -1,3 +1,4 @@
 .worktrees/
-.claude/
+.claude/*
+!.claude/settings.json
 __pycache__/
