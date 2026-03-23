@@ -9,3 +9,6 @@ on:
 jobs:
   test:
     uses: fissible/.github/.github/workflows/test-bash.yml@main
+    with:
+      bootstrap-command: bash bootstrap.sh
+      test-command: bash run.sh

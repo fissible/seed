@@ -2,6 +2,15 @@
 # run.sh — test runner for fissible/seed
 SEED_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+if [[ -z "${PTYUNIT_HOME:-}" ]]; then
+    _prefix=$(brew --prefix ptyunit 2>/dev/null) || {
+        printf 'error: ptyunit not found. Run: bash bootstrap.sh\n' >&2
+        exit 1
+    }
+    PTYUNIT_HOME="$_prefix/libexec"
+fi
+export PTYUNIT_HOME
+
 pass=0 fail=0
 
 run_suite() {

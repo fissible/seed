@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/assert-ext.sh — extra assert helpers for seed tests
 # Source AFTER ptyunit/assert.sh:
-#   source "$SEED_HOME/tests/vendor/ptyunit/assert.sh"
+#   source "$PTYUNIT_HOME/assert.sh"
 #   source "$SEED_HOME/tests/assert-ext.sh"
 
 # Assert an exit code equals expected.

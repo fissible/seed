@@ -37,6 +37,10 @@ Read at the start of every session:
 bash run.sh
 ```
 
+## Dependencies
+
+Run `bash bootstrap.sh` once to install ptyunit via Homebrew.
+
 ## Release
 
 ```bash
