@@ -57,20 +57,15 @@ Source from `feat:`, `fix:`, and breaking-change commits only — skip `docs:`, 
 
 ## Session handoff notes
 
-**Last updated:** 2026-03-22
+**Last updated:** 2026-03-23
 
 ### Completed this session
 
-- **`seed_custom` engine** (`bash seed.sh custom --schema <name>`): reads `.seed` schema files, generates records in all 4 output formats
-  - `src/custom.sh` — 12 `_seed_cfield_*` helpers + `seed_custom` generator
-  - `tests/fixtures/example.seed` — reference schema
-  - `tests/unit/test-custom.sh` — 37 assertions
-  - `seed_custom` MCP tool + 2 MCP tests
-  - `--schema` flag added to `_seed_parse_flags`
-- **`--help` / `-h` flag**: lists all 42 generators grouped by category + all flags
-  - 7 integration test assertions added
-- **MCP path fix**: `.mcp.json` placeholder path corrected to absolute path
-- **Versioning scaffold**: `VERSION`, `CHANGELOG.md`, release process documented here
+- **Vendor ptyunit**: copied `assert.sh` + `mock.sh` into `tests/vendor/ptyunit/`
+  - All 13 test files updated to source from `$SEED_HOME/tests/vendor/ptyunit/assert.sh`
+  - `run.sh` simplified — removed `PTYUNIT_HOME` env var and external dependency check
+  - `assert-ext.sh` — removed `assert_contains` (now provided by vendored ptyunit); kept `assert_exit_code` and `assert_not_empty`
+  - 347/347 tests pass; suite is now fully self-contained
 
 ### Next task
 
@@ -86,3 +81,4 @@ All planned tasks are closed. Next work is likely:
 - `trap ... exit 1` (not `return 1`) for bash 3.2 compatibility in interactive wizard
 - `_seed_cfield_date` uses year-only range (known limitation, consistent with `seed_date`)
 - Version strategy: semver + conventional commits + `VERSION` file + annotated git tags
+- ptyunit vendored (not submoduled) — test suite self-contained, no sibling-dir dependency
