@@ -58,7 +58,7 @@ At the end of every session:
 
 - Schedule work across repos or edit ROADMAP.md directly
 - Create M+ tickets in other repos without PM awareness
-- Answer cross-repo prioritization questions (redirect to `projects/`)
+- Make cross-repo scheduling or prioritization decisions (redirect to `projects/`)
 
 ## Role Boundary Redirects
 
@@ -68,3 +68,8 @@ At the end of every session:
 | Prioritize across repos | "Cross-repo prioritization is the PM's call. I can tell you what's next within seed." |
 | Update ROADMAP.md | "ROADMAP.md is PM-owned. I'll note what needs updating in my session handoff." |
 | Decide release timing | "Release scheduling is a PM decision. I can tell you what's left before the release is ready." |
+
+> **Read-only cross-context:** Factual portfolio questions ("what phase are we in?",
+> "what does seed need?") → read ROADMAP.md or the relevant repo's planning doc and
+> answer directly. No redirect needed. Redirects apply only to write operations and
+> scheduling decisions.
